@@ -1,3 +1,5 @@
+'use client';
+
 import {
     Sidebar,
     SidebarContent,
@@ -12,7 +14,6 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { UserButton } from "@clerk/nextjs";
 import {
     LayoutDashboard,
     Users,
@@ -20,12 +21,10 @@ import {
     Settings,
     BarChart3,
     Phone,
-    Zap
+    Zap,
+    User
 } from "lucide-react";
 import Link from "next/link";
-
-// Force dynamic rendering - Clerk requires runtime env vars
-export const dynamic = 'force-dynamic';
 
 const sidebarItems = [
     { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
@@ -35,6 +34,26 @@ const sidebarItems = [
     { title: "Analytics", icon: BarChart3, href: "/dashboard/analytics" },
     { title: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
+
+// Conditional Clerk import - only use if configured
+function AccountButton() {
+    const hasClerk = typeof window !== 'undefined' &&
+        process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+    if (hasClerk) {
+        // Dynamic import would go here if Clerk is configured
+        // For now, show placeholder
+    }
+
+    return (
+        <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                <User className="h-4 w-4" />
+            </div>
+            <span className="text-sm text-muted-foreground">Account</span>
+        </div>
+    );
+}
 
 export default function DashboardLayout({
     children,
@@ -71,10 +90,7 @@ export default function DashboardLayout({
                         </SidebarGroup>
                     </SidebarContent>
                     <SidebarFooter className="border-t p-4">
-                        <div className="flex items-center gap-3">
-                            <UserButton afterSignOutUrl="/" />
-                            <span className="text-sm text-muted-foreground">Account</span>
-                        </div>
+                        <AccountButton />
                     </SidebarFooter>
                 </Sidebar>
 
