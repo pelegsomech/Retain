@@ -93,10 +93,12 @@ model Lead {
   ipAddress       String?
   
   // AI Voice Outcome
-  callSid         String?
-  callOutcome     String?     // qualified, not_interested, no_answer, voicemail
-  callTranscript  String?     @db.Text
-  aiCallMetadata  Json?       // Retell call data (callId, duration, etc.)
+  aiCallId        String?     // Retell call ID
+  aiCallStartedAt DateTime?
+  aiCallEndedAt   DateTime?
+  aiCallDuration  Int?        // seconds
+  aiCallTranscript String?    @db.Text
+  aiCallOutcome   String?     // booked, not_interested, callback, voicemail
   
   // Appointment
   appointmentTime DateTime?
@@ -117,9 +119,10 @@ enum LeadStatus {
   SMS_SENT
   CLAIMED
   AI_CALLING
-  QUALIFIED
+  AI_QUALIFIED
   BOOKED
-  NOT_INTERESTED
+  CALLBACK_SCHEDULED
+  DISQUALIFIED
   NO_ANSWER
   DEAD
 }
@@ -150,9 +153,8 @@ enum EventType {
   SMS_FAILED
   CLAIM_LINK_CLICKED
   CLAIM_TIMEOUT
-  AI_CALL_INITIATED
-  AI_CALL_CONNECTED
-  AI_CALL_ENDED
+  AI_CALL_STARTED
+  AI_CALL_COMPLETED
   APPOINTMENT_BOOKED
   LEAD_STATUS_CHANGED
 }

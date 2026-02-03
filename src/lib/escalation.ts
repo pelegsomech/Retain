@@ -143,6 +143,9 @@ export async function processClaimClick(token: string): Promise<{ success: boole
  * Handle claim timeout → trigger AI voice escalation
  */
 export async function handleClaimTimeout(leadId: string): Promise<void> {
+    // Import dynamically to avoid circular deps
+    const { initiateRetellCall } = await import('./retell')
+
     const lead = await prisma.lead.findUnique({
         where: { id: leadId },
         include: { tenant: true },
@@ -170,6 +173,21 @@ export async function handleClaimTimeout(leadId: string): Promise<void> {
         },
     })
 
-    // TODO: Trigger Retell.ai call (implemented in Phase 4)
-    // await initiateRetellCall(lead)
+    // Trigger Retell.ai call
+    try {
+        await initiateRetellCall({
+            leadId: lead.id,
+            phone: lead.phone,
+            tenantId: lead.tenantId,
+            tenantName: lead.tenant?.companyName || 'Our Company',
+            tenantNiche: lead.tenant?.niche || 'service',
+            leadFirstName: lead.firstName,
+            calendarLink: lead.tenant?.calcomApiKey ?
+                `https://cal.com/${lead.tenant.companyName?.toLowerCase().replace(/\s+/g, '-')}/consultation` :
+                undefined,
+        })
+    } catch (error) {
+        console.error(`[Escalation] Failed to initiate AI call for lead ${leadId}:`, error)
+    }
 }
+
