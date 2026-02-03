@@ -3,7 +3,9 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 // Protected routes (dashboard)
 const isProtectedRoute = createRouteMatcher([
     '/dashboard(.*)',
+    '/onboarding(.*)',
     '/api/leads(.*)',
+    '/api/tenants(.*)',
     '/api/voice(.*)',
 ])
 
@@ -13,6 +15,7 @@ const isPublicRoute = createRouteMatcher([
     '/l/(.*)',           // Landing pages
     '/c/(.*)',           // Claim links
     '/api/webhooks(.*)', // Twilio/Retell webhooks
+    '/api/cron(.*)',     // Cron jobs
     '/sign-in(.*)',
     '/sign-up(.*)',
 ])
