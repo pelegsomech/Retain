@@ -21,25 +21,28 @@ import {
     Settings,
     BarChart3,
     Phone,
-    Sparkles,
-    LogOut,
-    Bell,
+    Plus,
     Search,
+    SlidersHorizontal,
+    User,
+    LogOut,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
-const sidebarItems = [
+const mainNav = [
     { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-    { title: "Leads", icon: Users, href: "/dashboard/leads" },
+    { title: "Leads", icon: Users, href: "/dashboard/leads", count: 0 },
     { title: "Landing Pages", icon: FileText, href: "/dashboard/landers" },
     { title: "AI Calls", icon: Phone, href: "/dashboard/calls" },
-    { title: "Analytics", icon: BarChart3, href: "/dashboard/analytics" },
+    { title: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
 
-const bottomItems = [
-    { title: "Settings", icon: Settings, href: "/dashboard/settings" },
+// Team members (simulated - would come from Clerk in production)
+const teamMembers = [
+    { name: "Sandra Perry", role: "Property Manager", avatar: "SP", color: "avatar-teal" },
+    { name: "Alex Johnson", role: "Sales Lead", avatar: "AJ", color: "avatar-amber" },
+    { name: "Maria Garcia", role: "Marketing", avatar: "MG", color: "avatar-purple" },
 ];
 
 export default function DashboardLayout({
@@ -52,27 +55,19 @@ export default function DashboardLayout({
     return (
         <SidebarProvider>
             <div className="flex min-h-screen w-full bg-background">
-                {/* Premium Sidebar */}
-                <Sidebar className="border-r border-sidebar-border/60">
-                    <SidebarHeader className="px-5 py-5">
-                        <Link href="/dashboard" className="flex items-center gap-2.5 group">
-                            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-                                <Sparkles className="h-5 w-5 text-primary-foreground" />
-                            </div>
-                            <div>
-                                <span className="font-bold text-lg tracking-tight">RETAIN</span>
-                                <span className="block text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
-                                    Lead Platform
-                                </span>
-                            </div>
+                {/* Premium Sidebar - Pure white like BizLink */}
+                <Sidebar className="border-r border-border bg-white">
+                    <SidebarHeader className="px-4 py-5">
+                        <Link href="/dashboard" className="flex items-center gap-2">
+                            <span className="text-xl font-bold text-foreground tracking-tight">RETAIN</span>
                         </Link>
                     </SidebarHeader>
 
-                    <SidebarContent className="px-3">
+                    <SidebarContent className="px-2">
                         <SidebarGroup>
                             <SidebarGroupContent>
-                                <SidebarMenu className="space-y-1">
-                                    {sidebarItems.map((item) => {
+                                <SidebarMenu className="space-y-0.5">
+                                    {mainNav.map((item) => {
                                         const isActive = pathname === item.href ||
                                             (item.href !== '/dashboard' && pathname.startsWith(item.href));
 
@@ -81,18 +76,22 @@ export default function DashboardLayout({
                                                 <SidebarMenuButton
                                                     asChild
                                                     className={`
-                                                        h-11 px-3.5 rounded-lg font-medium transition-all duration-200
+                                                        h-10 px-3 rounded-lg font-medium transition-all duration-150
                                                         ${isActive
-                                                            ? 'bg-primary/10 text-primary hover:bg-primary/15 shadow-sm'
-                                                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                                                            ? 'bg-accent text-foreground'
+                                                            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                                                         }
                                                     `}
                                                 >
-                                                    <Link href={item.href} className="flex items-center gap-3">
-                                                        <item.icon className={`h-[18px] w-[18px] ${isActive ? 'text-primary' : ''}`} />
-                                                        <span className="text-sm">{item.title}</span>
-                                                        {isActive && (
-                                                            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                                                    <Link href={item.href} className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <item.icon className="h-[18px] w-[18px]" />
+                                                            <span className="text-[0.9375rem]">{item.title}</span>
+                                                        </div>
+                                                        {item.count !== undefined && item.count > 0 && (
+                                                            <span className="text-xs font-medium text-muted-foreground bg-accent px-1.5 py-0.5 rounded">
+                                                                {item.count}
+                                                            </span>
                                                         )}
                                                     </Link>
                                                 </SidebarMenuButton>
@@ -102,89 +101,80 @@ export default function DashboardLayout({
                                 </SidebarMenu>
                             </SidebarGroupContent>
                         </SidebarGroup>
+
+                        {/* Team Section - Like BizLink Members */}
+                        <div className="sidebar-section">Team</div>
+                        <div className="px-1 space-y-0.5">
+                            {teamMembers.map((member) => (
+                                <div key={member.name} className="member-row">
+                                    <div className={`avatar-gradient ${member.color}`}>
+                                        {member.avatar}
+                                    </div>
+                                    <div className="member-info">
+                                        <div className="member-name">{member.name}</div>
+                                        <div className="member-role">{member.role}</div>
+                                    </div>
+                                </div>
+                            ))}
+                            <button className="member-row w-full text-left group">
+                                <div className="w-8 h-8 rounded-full border-2 border-dashed border-border flex items-center justify-center group-hover:border-primary transition-colors">
+                                    <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                                </div>
+                                <span className="text-sm text-muted-foreground group-hover:text-foreground">
+                                    Invite Member
+                                </span>
+                            </button>
+                        </div>
                     </SidebarContent>
 
-                    <SidebarFooter className="px-3 pb-4 mt-auto">
-                        <div className="divider mb-4" />
-                        <SidebarMenu className="space-y-1">
-                            {bottomItems.map((item) => {
-                                const isActive = pathname === item.href;
-                                return (
-                                    <SidebarMenuItem key={item.title}>
-                                        <SidebarMenuButton
-                                            asChild
-                                            className={`
-                                                h-11 px-3.5 rounded-lg font-medium transition-all duration-200
-                                                ${isActive
-                                                    ? 'bg-primary/10 text-primary'
-                                                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                                                }
-                                            `}
-                                        >
-                                            <Link href={item.href} className="flex items-center gap-3">
-                                                <item.icon className="h-[18px] w-[18px]" />
-                                                <span className="text-sm">{item.title}</span>
-                                            </Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                );
-                            })}
-                        </SidebarMenu>
-
-                        {/* Account Section */}
-                        <div className="mt-4 p-3 rounded-xl bg-accent/50 border border-border/50">
-                            <div className="flex items-center gap-3">
-                                <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-primary-foreground font-semibold text-sm shadow-sm">
-                                    P
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">Peleg S.</p>
-                                    <p className="text-xs text-muted-foreground truncate">Pro Plan</p>
-                                </div>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                    <LogOut className="h-4 w-4" />
-                                </Button>
+                    <SidebarFooter className="p-3 mt-auto border-t border-border">
+                        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer">
+                            <div className="avatar-gradient avatar-blue">PS</div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">Peleg S.</p>
+                                <p className="text-xs text-muted-foreground truncate">Owner</p>
                             </div>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                <LogOut className="h-4 w-4" />
+                            </Button>
                         </div>
                     </SidebarFooter>
                 </Sidebar>
 
                 {/* Main Content */}
                 <main className="flex-1 flex flex-col min-h-screen">
-                    {/* Premium Header */}
-                    <header className="sticky top-0 z-30 h-16 border-b border-border/60 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
-                        <div className="flex h-full items-center gap-4 px-6">
-                            <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
+                    {/* Clean Header - Like BizLink */}
+                    <header className="sticky top-0 z-30 h-16 bg-white border-b border-border">
+                        <div className="flex h-full items-center justify-between px-6">
+                            <div className="flex items-center gap-4">
+                                <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
 
-                            {/* Search */}
-                            <div className="flex-1 max-w-md">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        placeholder="Search leads, pages..."
-                                        className="pl-9 h-10 bg-accent/50 border-border/50 focus:bg-background transition-colors"
-                                    />
+                                {/* Search bar */}
+                                <div className="search-bar w-80">
+                                    <Search className="h-4 w-4 text-muted-foreground" />
+                                    <input placeholder="Search leads, pages..." />
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-2">
-                                {/* Notifications */}
-                                <Button variant="ghost" size="icon" className="relative h-10 w-10 text-muted-foreground hover:text-foreground">
-                                    <Bell className="h-[18px] w-[18px]" />
-                                    <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full" />
-                                </Button>
-
-                                {/* Quick Action */}
-                                <Button size="sm" className="h-10 px-4 font-medium shadow-sm">
-                                    <Sparkles className="h-4 w-4 mr-2" />
-                                    New Lead
-                                </Button>
+                                <button className="toolbar-btn">
+                                    <SlidersHorizontal className="h-4 w-4" />
+                                    Filters
+                                </button>
+                                <button className="toolbar-btn">
+                                    <User className="h-4 w-4" />
+                                    Me
+                                </button>
+                                <button className="btn-primary">
+                                    <Plus className="h-4 w-4" />
+                                    Add Lead
+                                </button>
                             </div>
                         </div>
                     </header>
 
                     {/* Page Content */}
-                    <div className="flex-1 p-8 bg-accent/20">
+                    <div className="flex-1 p-6">
                         <div className="animate-fade-in">
                             {children}
                         </div>
