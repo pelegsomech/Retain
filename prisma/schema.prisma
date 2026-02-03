@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// TENANT: Contractor Accounts
+// ============================================
+model Tenant {
+  id              String    @id @default(cuid())
+  clerkOrgId      String    @unique
+  companyName     String
+  slug            String    @unique
+  niche           String    // roofing, decking, siding...
+  
+  // Branding
+  logoUrl         String?
+  primaryColor    String    @default("#2563eb")
+  accentColor     String    @default("#1e40af")
+  
+  // Twilio
+  twilioSid       String?
+  twilioToken     String?
+  twilioFromPhone String?
+  
+  // Retell.ai (shared agent + per-tenant metadata)
+  retellAgentId   String?
+  
+  // Calendar Integration
+  calendarProvider CalendarProvider?
+  calendarUrl      String?
+  ghlApiKey        String?
+  calcomApiKey     String?
+  
+  // TCPA (2026 FCC-compliant)
+  consentText     String    @default("By submitting, you consent to receive calls and texts from {companyName}, including those using AI-generated or prerecorded voices, for marketing purposes. You can revoke consent anytime.")
+  
+  claimTimeoutSec Int       @default(60)
+  isActive        Boolean   @default(true)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  leads           Lead[]
+  events          Event[]
+  landerPages     LanderPage[]
+}
+
+enum CalendarProvider {
+  CALCOM
+  GHL
+}
+
+// ============================================
+// LEAD: Source of Truth
+// ============================================
+model Lead {
+  id              String      @id @default(cuid())
+  tenantId        String
+  tenant          Tenant      @relation(fields: [tenantId], references: [id])
+  
+  // Contact
+  firstName       String
+  lastName        String?
+  phone           String
+  email           String?
+  address         String?
+  city            String?
+  state           String?
+  zip             String?
+  
+  // Source
+  source          String      @default("landing_page")
+  landingPageId   String?
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  
+  // Status
+  status          LeadStatus  @default(NEW)
+  claimToken      String?     @unique  // JWT or signed token
+  claimExpiresAt  DateTime?
+  claimedAt       DateTime?
+  claimedBy       String?     // "human" | "ai"
+  
+  // TCPA Consent (2026 compliant)
+  tcpaConsentAt   DateTime?
+  tcpaConsentText String?     // Exact rendered consent
+  aiConsentGiven  Boolean     @default(false)  // Explicit AI voice consent
+  ipAddress       String?
+  
+  // AI Voice Outcome
+  callSid         String?
+  callOutcome     String?     // qualified, not_interested, no_answer, voicemail
+  callTranscript  String?     @db.Text
+  aiCallMetadata  Json?       // Retell call data (callId, duration, etc.)
+  
+  // Appointment
+  appointmentTime DateTime?
+  appointmentNotes String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  events          Event[]
+  
+  @@index([tenantId, status])
+  @@index([claimToken])
+  @@index([createdAt])
+}
+
+enum LeadStatus {
+  NEW
+  SMS_SENT
+  CLAIMED
+  AI_CALLING
+  QUALIFIED
+  BOOKED
+  NOT_INTERESTED
+  NO_ANSWER
+  DEAD
+}
+
+// ============================================
+// EVENT LOG
+// ============================================
+model Event {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  leadId      String?
+  lead        Lead?     @relation(fields: [leadId], references: [id])
+  
+  type        EventType
+  payload     Json?     // Twilio webhooks, Retell data, etc.
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([tenantId, createdAt])
+  @@index([leadId])
+}
+
+enum EventType {
+  LEAD_CREATED
+  SMS_SENT
+  SMS_DELIVERED
+  SMS_FAILED
+  CLAIM_LINK_CLICKED
+  CLAIM_TIMEOUT
+  AI_CALL_INITIATED
+  AI_CALL_CONNECTED
+  AI_CALL_ENDED
+  APPOINTMENT_BOOKED
+  LEAD_STATUS_CHANGED
+}
+
+// ============================================
+// LANDER PAGES
+// ============================================
+model LanderPage {
+  id              String    @id @default(cuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  
+  slug            String
+  name            String
+  headline        String
+  subheadline     String?
+  heroImageUrl    String?
+  ctaText         String    @default("Get Your Free Quote")
+  formFields      Json      // [{name, type, required, label}]
+  metaTitle       String?
+  metaDescription String?
+  isActive        Boolean   @default(true)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([tenantId, slug])
+}
