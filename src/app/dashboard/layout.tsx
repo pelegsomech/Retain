@@ -16,45 +16,26 @@ import {
 } from "@/components/ui/sidebar";
 import {
     LayoutDashboard,
-    ListTodo,
-    Activity,
     Users,
-    Settings,
-    Sparkles,
-    TrendingUp,
-    Target,
+    Phone,
+    FileText,
     BarChart3,
+    Settings,
     Plus,
     Search,
-    SlidersHorizontal,
-    ArrowUpDown,
+    Bell,
     LogOut,
 } from "lucide-react";
 import Link from "next/link";
 
-// Main navigation
+// RETAIN Navigation - Contractor CRM focused
 const mainNav = [
     { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-    { title: "Tasks", icon: ListTodo, href: "/dashboard/leads", count: 2 },
-    { title: "Activity", icon: Activity, href: "/dashboard/calls" },
-    { title: "Customers", icon: Users, href: "/dashboard/landers" },
+    { title: "Leads", icon: Users, href: "/dashboard/leads" },
+    { title: "Calls", icon: Phone, href: "/dashboard/calls" },
+    { title: "Landing Pages", icon: FileText, href: "/dashboard/landers" },
+    { title: "Analytics", icon: BarChart3, href: "/dashboard/analytics" },
     { title: "Settings", icon: Settings, href: "/dashboard/settings" },
-];
-
-// Projects section
-const projects = [
-    { title: "BizConnect", icon: Sparkles, count: 7 },
-    { title: "Growth Hub", icon: TrendingUp },
-    { title: "Conversion Path", icon: Target },
-    { title: "Marketing", icon: BarChart3 },
-];
-
-// Team members
-const members = [
-    { name: "Sandra Perry", role: "Product Manager", initials: "SP", color: "member-avatar-amber" },
-    { name: "Antony Cardenas", role: "Sales Manager", initials: "AC", color: "member-avatar-gray" },
-    { name: "Jamal Connolly", role: "Growth Marketer", initials: "JC", color: "member-avatar-green" },
-    { name: "Cara Carr", role: "SEO Specialist", initials: "CC", color: "member-avatar-blue" },
 ];
 
 export default function DashboardLayout({
@@ -67,12 +48,15 @@ export default function DashboardLayout({
     return (
         <SidebarProvider>
             <div className="flex min-h-screen w-full bg-background">
-                {/* Sidebar - 240px, #FAFAFA */}
+                {/* Sidebar - 240px, clean white */}
                 <Sidebar className="w-[240px] bg-[#FAFAFA] border-r border-[#EEEEEE]">
                     <SidebarHeader className="px-4 py-6">
                         <Link href="/dashboard" className="block">
-                            <span className="text-lg font-semibold text-foreground">
-                                BizLink
+                            <span className="text-xl font-bold text-foreground tracking-tight">
+                                RETAIN
+                            </span>
+                            <span className="block text-xs text-[#9E9E9E] mt-0.5">
+                                Lead Platform
                             </span>
                         </Link>
                     </SidebarHeader>
@@ -95,9 +79,6 @@ export default function DashboardLayout({
                                                     >
                                                         <item.icon className="nav-item-icon" />
                                                         <span>{item.title}</span>
-                                                        {item.count !== undefined && (
-                                                            <span className="nav-item-count">{item.count}</span>
-                                                        )}
                                                     </Link>
                                                 </SidebarMenuButton>
                                             </SidebarMenuItem>
@@ -106,46 +87,14 @@ export default function DashboardLayout({
                                 </SidebarMenu>
                             </SidebarGroupContent>
                         </SidebarGroup>
-
-                        {/* Projects Section */}
-                        <div className="section-label">Projects</div>
-                        <div>
-                            {projects.map((project) => (
-                                <div key={project.title} className="nav-item">
-                                    <project.icon className="nav-item-icon" />
-                                    <span>{project.title}</span>
-                                    {project.count && (
-                                        <span className="nav-item-count">{project.count}</span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Members Section */}
-                        <div className="section-label flex items-center justify-between pr-4">
-                            <span>Members</span>
-                            <Plus className="w-4 h-4 text-[#9E9E9E] cursor-pointer hover:text-foreground" />
-                        </div>
-                        <div>
-                            {members.map((member) => (
-                                <div key={member.name} className="member-item">
-                                    <div className={`member-avatar ${member.color}`}>
-                                        {member.initials}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="member-name">{member.name}</div>
-                                        <div className="member-role">{member.role}</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
                     </SidebarContent>
 
                     <SidebarFooter className="border-t border-[#EEEEEE]">
                         <div className="member-item py-3">
-                            <div className="member-avatar member-avatar-black">IL</div>
+                            <div className="member-avatar member-avatar-black">PS</div>
                             <div className="flex-1 min-w-0">
-                                <div className="member-name">Iona Rollins</div>
+                                <div className="member-name">Peleg S.</div>
+                                <div className="member-role">Owner</div>
                             </div>
                             <LogOut className="w-4 h-4 text-[#9E9E9E] cursor-pointer hover:text-foreground" />
                         </div>
@@ -154,7 +103,7 @@ export default function DashboardLayout({
 
                 {/* Main Content */}
                 <main className="flex-1 flex flex-col min-h-screen">
-                    {/* Header - 64px, white */}
+                    {/* Header - 64px */}
                     <header className="header justify-between">
                         <div className="flex items-center gap-4">
                             <SidebarTrigger className="text-[#666666] hover:text-foreground -ml-2" />
@@ -162,26 +111,17 @@ export default function DashboardLayout({
                             {/* Search */}
                             <div className="search-input">
                                 <Search />
-                                <input placeholder="Search customer..." />
+                                <input placeholder="Search leads, pages..." />
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                             <button className="btn-icon">
-                                <ArrowUpDown className="w-4 h-4" />
-                                Sort by
+                                <Bell className="w-4 h-4" />
                             </button>
-                            <button className="btn-icon">
-                                <SlidersHorizontal className="w-4 h-4" />
-                                Filters
-                            </button>
-                            <button className="btn-icon">
-                                <Users className="w-4 h-4" />
-                                Me
-                            </button>
-                            <button className="btn-primary ml-2">
+                            <button className="btn-primary">
                                 <Plus className="w-4 h-4" />
-                                Add customer
+                                New Lead
                             </button>
                         </div>
                     </header>
