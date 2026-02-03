@@ -16,33 +16,46 @@ import {
 } from "@/components/ui/sidebar";
 import {
     LayoutDashboard,
+    ListTodo,
+    Activity,
     Users,
-    FileText,
     Settings,
+    Sparkles,
+    TrendingUp,
+    Target,
     BarChart3,
-    Phone,
     Plus,
     Search,
     SlidersHorizontal,
     User,
     LogOut,
+    ArrowUpDown,
 } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
+// Main navigation - matches BizLink exactly
 const mainNav = [
     { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-    { title: "Leads", icon: Users, href: "/dashboard/leads", count: 0 },
-    { title: "Landing Pages", icon: FileText, href: "/dashboard/landers" },
-    { title: "AI Calls", icon: Phone, href: "/dashboard/calls" },
+    { title: "Leads", icon: ListTodo, href: "/dashboard/leads", count: 2 },
+    { title: "Activity", icon: Activity, href: "/dashboard/calls" },
+    { title: "Pages", icon: Users, href: "/dashboard/landers" },
     { title: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
 
-// Team members (simulated - would come from Clerk in production)
-const teamMembers = [
-    { name: "Sandra Perry", role: "Property Manager", avatar: "SP", color: "avatar-teal" },
-    { name: "Alex Johnson", role: "Sales Lead", avatar: "AJ", color: "avatar-amber" },
-    { name: "Maria Garcia", role: "Marketing", avatar: "MG", color: "avatar-purple" },
+// Projects section
+const projects = [
+    { title: "Landing Pages", icon: Sparkles, count: 7 },
+    { title: "Campaigns", icon: TrendingUp },
+    { title: "Analytics", icon: BarChart3 },
+    { title: "AI Calls", icon: Target },
+];
+
+// Team members with actual photos/gradients
+const members = [
+    { name: "Sandra Perry", role: "Property Manager", initials: "SP", color: "member-avatar-amber" },
+    { name: "Antony Cardenas", role: "Sales Manager", initials: "AC", color: "member-avatar-purple" },
+    { name: "Jamal Connolly", role: "Growth Marketer", initials: "JC", color: "member-avatar-teal" },
+    { name: "Cara Carr", role: "SEO Specialist", initials: "CC", color: "member-avatar-rose" },
 ];
 
 export default function DashboardLayout({
@@ -55,43 +68,36 @@ export default function DashboardLayout({
     return (
         <SidebarProvider>
             <div className="flex min-h-screen w-full bg-background">
-                {/* Premium Sidebar - Pure white like BizLink */}
-                <Sidebar className="border-r border-border bg-white">
-                    <SidebarHeader className="px-4 py-5">
-                        <Link href="/dashboard" className="flex items-center gap-2">
-                            <span className="text-xl font-bold text-foreground tracking-tight">RETAIN</span>
+                {/* Sidebar - BizLink exact */}
+                <Sidebar className="border-r border-border bg-white w-[240px]">
+                    <SidebarHeader className="px-5 py-6">
+                        <Link href="/dashboard" className="block">
+                            <span className="text-[18px] font-semibold text-foreground tracking-tight">
+                                RETAIN
+                            </span>
                         </Link>
                     </SidebarHeader>
 
-                    <SidebarContent className="px-2">
+                    <SidebarContent>
+                        {/* Main Navigation */}
                         <SidebarGroup>
                             <SidebarGroupContent>
-                                <SidebarMenu className="space-y-0.5">
+                                <SidebarMenu>
                                     {mainNav.map((item) => {
                                         const isActive = pathname === item.href ||
                                             (item.href !== '/dashboard' && pathname.startsWith(item.href));
 
                                         return (
                                             <SidebarMenuItem key={item.title}>
-                                                <SidebarMenuButton
-                                                    asChild
-                                                    className={`
-                                                        h-10 px-3 rounded-lg font-medium transition-all duration-150
-                                                        ${isActive
-                                                            ? 'bg-accent text-foreground'
-                                                            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                                                        }
-                                                    `}
-                                                >
-                                                    <Link href={item.href} className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-3">
-                                                            <item.icon className="h-[18px] w-[18px]" />
-                                                            <span className="text-[0.9375rem]">{item.title}</span>
-                                                        </div>
-                                                        {item.count !== undefined && item.count > 0 && (
-                                                            <span className="text-xs font-medium text-muted-foreground bg-accent px-1.5 py-0.5 rounded">
-                                                                {item.count}
-                                                            </span>
+                                                <SidebarMenuButton asChild className="h-auto p-0 bg-transparent hover:bg-transparent">
+                                                    <Link
+                                                        href={item.href}
+                                                        className={`nav-item ${isActive ? 'nav-item-active' : ''}`}
+                                                    >
+                                                        <item.icon className="nav-item-icon" />
+                                                        <span>{item.title}</span>
+                                                        {item.count !== undefined && (
+                                                            <span className="nav-item-count">{item.count}</span>
                                                         )}
                                                     </Link>
                                                 </SidebarMenuButton>
@@ -102,13 +108,30 @@ export default function DashboardLayout({
                             </SidebarGroupContent>
                         </SidebarGroup>
 
-                        {/* Team Section - Like BizLink Members */}
-                        <div className="sidebar-section">Team</div>
-                        <div className="px-1 space-y-0.5">
-                            {teamMembers.map((member) => (
-                                <div key={member.name} className="member-row">
-                                    <div className={`avatar-gradient ${member.color}`}>
-                                        {member.avatar}
+                        {/* Projects Section */}
+                        <div className="section-label">Projects</div>
+                        <div>
+                            {projects.map((project) => (
+                                <div key={project.title} className="project-item">
+                                    <project.icon className="project-icon" />
+                                    <span>{project.title}</span>
+                                    {project.count && (
+                                        <span className="project-count">{project.count}</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Members Section */}
+                        <div className="section-label flex items-center justify-between pr-4">
+                            <span>Members</span>
+                            <Plus className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-foreground" />
+                        </div>
+                        <div>
+                            {members.map((member) => (
+                                <div key={member.name} className="member-item">
+                                    <div className={`member-avatar ${member.color}`}>
+                                        {member.initials}
                                     </div>
                                     <div className="member-info">
                                         <div className="member-name">{member.name}</div>
@@ -116,57 +139,51 @@ export default function DashboardLayout({
                                     </div>
                                 </div>
                             ))}
-                            <button className="member-row w-full text-left group">
-                                <div className="w-8 h-8 rounded-full border-2 border-dashed border-border flex items-center justify-center group-hover:border-primary transition-colors">
-                                    <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                                </div>
-                                <span className="text-sm text-muted-foreground group-hover:text-foreground">
-                                    Invite Member
-                                </span>
-                            </button>
                         </div>
                     </SidebarContent>
 
-                    <SidebarFooter className="p-3 mt-auto border-t border-border">
-                        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer">
-                            <div className="avatar-gradient avatar-blue">PS</div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">Peleg S.</p>
-                                <p className="text-xs text-muted-foreground truncate">Owner</p>
+                    <SidebarFooter className="border-t border-border">
+                        <div className="member-item py-3">
+                            <div className="member-avatar member-avatar-blue">PS</div>
+                            <div className="member-info">
+                                <div className="member-name">Peleg S.</div>
+                                <div className="member-role">Owner</div>
                             </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                <LogOut className="h-4 w-4" />
-                            </Button>
+                            <LogOut className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-foreground" />
                         </div>
                     </SidebarFooter>
                 </Sidebar>
 
                 {/* Main Content */}
                 <main className="flex-1 flex flex-col min-h-screen">
-                    {/* Clean Header - Like BizLink */}
-                    <header className="sticky top-0 z-30 h-16 bg-white border-b border-border">
+                    {/* Header - BizLink exact */}
+                    <header className="sticky top-0 z-30 h-[72px] bg-white border-b border-border">
                         <div className="flex h-full items-center justify-between px-6">
                             <div className="flex items-center gap-4">
-                                <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+                                <SidebarTrigger className="text-muted-foreground hover:text-foreground -ml-2" />
 
-                                {/* Search bar */}
-                                <div className="search-bar w-80">
-                                    <Search className="h-4 w-4 text-muted-foreground" />
-                                    <input placeholder="Search leads, pages..." />
+                                {/* Search */}
+                                <div className="search-input">
+                                    <Search />
+                                    <input placeholder="Search customer..." />
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                                 <button className="toolbar-btn">
-                                    <SlidersHorizontal className="h-4 w-4" />
+                                    <ArrowUpDown />
+                                    Sort by
+                                </button>
+                                <button className="toolbar-btn">
+                                    <SlidersHorizontal />
                                     Filters
                                 </button>
                                 <button className="toolbar-btn">
-                                    <User className="h-4 w-4" />
+                                    <User />
                                     Me
                                 </button>
-                                <button className="btn-primary">
-                                    <Plus className="h-4 w-4" />
+                                <button className="btn-primary ml-2">
+                                    <Plus />
                                     Add Lead
                                 </button>
                             </div>
@@ -174,7 +191,7 @@ export default function DashboardLayout({
                     </header>
 
                     {/* Page Content */}
-                    <div className="flex-1 p-6">
+                    <div className="flex-1 p-6 bg-background">
                         <div className="animate-fade-in">
                             {children}
                         </div>

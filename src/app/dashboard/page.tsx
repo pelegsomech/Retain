@@ -3,17 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-    Users,
-    TrendingUp,
     ArrowRight,
-    Clock,
     Calendar,
-    Phone,
     MessageSquare,
-    CheckCircle,
-    Bot,
-    User,
     MoreVertical,
+    MapPin,
+    Mail,
+    ArrowUpDown,
 } from "lucide-react";
 
 interface Lead {
@@ -21,36 +17,35 @@ interface Lead {
     firstName: string;
     lastName: string | null;
     phone: string;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
     status: string;
     claimedBy: string | null;
     createdAt: string;
-    address?: string;
     source?: string;
 }
 
 interface DashboardData {
-    tenant: {
-        companyName: string;
-    };
     stats: {
         totalLeads: number;
         leadsToday: number;
         bookedCount: number;
+        inProgress: number;
     };
-    recentLeads: Lead[];
+    leads: Lead[];
 }
 
 const PIPELINE_COLUMNS = [
-    { key: 'NEW', label: 'New Leads', icon: Users },
-    { key: 'SMS_SENT', label: 'Contacted', icon: MessageSquare },
-    { key: 'CLAIMED', label: 'Claimed', icon: CheckCircle },
-    { key: 'BOOKED', label: 'Booked', icon: Calendar },
+    { key: 'NEW', label: 'Contacted' },
+    { key: 'SMS_SENT', label: 'Negotiation' },
+    { key: 'CLAIMED', label: 'Offer Sent' },
+    { key: 'BOOKED', label: 'Deal Closed' },
 ];
 
 export default function DashboardPage() {
     const [data, setData] = useState<DashboardData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [allLeads, setAllLeads] = useState<Lead[]>([]);
 
     useEffect(() => {
         fetchDashboardData();
@@ -58,26 +53,22 @@ export default function DashboardPage() {
 
     const fetchDashboardData = async () => {
         try {
-            const [tenantRes, leadsRes, analyticsRes] = await Promise.all([
-                fetch('/api/tenants'),
+            const [leadsRes, analyticsRes] = await Promise.all([
                 fetch('/api/leads?limit=100'),
                 fetch('/api/analytics'),
             ]);
 
-            const tenantData = tenantRes.ok ? await tenantRes.json() : null;
             const leadsData = leadsRes.ok ? await leadsRes.json() : { leads: [] };
             const analyticsData = analyticsRes.ok ? await analyticsRes.json() : null;
 
-            setAllLeads(leadsData.leads || []);
-
             setData({
-                tenant: tenantData?.tenant || { companyName: 'Your Company' },
                 stats: {
                     totalLeads: analyticsData?.overview?.totalLeads || 0,
                     leadsToday: analyticsData?.overview?.leadsToday || 0,
                     bookedCount: analyticsData?.overview?.bookedLeads || 0,
+                    inProgress: leadsData.leads?.filter((l: Lead) => ['SMS_SENT', 'CLAIMED'].includes(l.status)).length || 0,
                 },
-                recentLeads: leadsData.leads.slice(0, 10),
+                leads: leadsData.leads || [],
             });
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
@@ -91,175 +82,212 @@ export default function DashboardPage() {
         return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
     };
 
-    // Group leads by status for pipeline
+    // Group leads by status
     const leadsByStatus = PIPELINE_COLUMNS.reduce((acc, col) => {
-        acc[col.key] = allLeads.filter(l => l.status === col.key);
+        acc[col.key] = (data?.leads || []).filter(l => l.status === col.key);
         return acc;
     }, {} as Record<string, Lead[]>);
+
+    // Calculate conversion percentage
+    const conversionRate = data?.stats.totalLeads
+        ? Math.round((data.stats.bookedCount / data.stats.totalLeads) * 100)
+        : 0;
+
+    // Weekly data for bar chart (simulated pattern)
+    const weeklyData = [4, 7, 5, 9, 6];
+    const maxVal = Math.max(...weeklyData);
 
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
-                <div className="animate-pulse text-muted-foreground">Loading...</div>
+                <div className="text-muted-foreground">Loading...</div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8 max-w-full">
+        <div className="max-w-full">
 
-            {/* Stats Row - Like BizLink with chart area */}
-            <div className="stats-row">
-                {/* Bar Chart Placeholder */}
-                <div className="flex-1 pr-6 border-r border-border">
-                    <h3 className="text-sm font-medium text-muted-foreground mb-3">New Leads</h3>
-                    <div className="flex items-end gap-2 h-20">
-                        {[3, 7, 5, 9, 4, 8, 6].map((height, i) => (
+            {/* Stats Container - BizLink exact */}
+            <div className="stats-container">
+                {/* Bar Chart */}
+                <div className="chart-section">
+                    <div className="chart-title">New customers</div>
+                    <div className="bar-chart">
+                        {weeklyData.map((val, i) => (
                             <div
                                 key={i}
-                                className="flex-1 bg-foreground rounded-sm transition-all hover:bg-primary"
-                                style={{ height: `${height * 10}%` }}
+                                className="bar"
+                                style={{ height: `${(val / maxVal) * 100}%` }}
                             />
                         ))}
                     </div>
-                    <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-                        <span>Mon</span>
-                        <span>Tue</span>
-                        <span>Wed</span>
-                        <span>Thu</span>
-                        <span>Fri</span>
-                        <span>Sat</span>
-                        <span>Sun</span>
+                    <div className="bar-labels">
+                        <span className="bar-label">Mon</span>
+                        <span className="bar-label">Tue</span>
+                        <span className="bar-label">Wed</span>
+                        <span className="bar-label">Thu</span>
+                        <span className="bar-label">Fri</span>
                     </div>
                 </div>
 
-                {/* Donut Chart Placeholder */}
-                <div className="flex items-center justify-center px-8 border-r border-border">
-                    <div className="relative">
-                        <svg className="w-24 h-24" viewBox="0 0 100 100">
+                {/* Donut Chart */}
+                <div className="donut-section">
+                    <div className="donut-chart">
+                        <svg viewBox="0 0 100 100" className="w-full h-full">
+                            {/* Background circle */}
                             <circle
                                 cx="50"
                                 cy="50"
-                                r="40"
+                                r="38"
                                 fill="none"
                                 stroke="#e2e8f0"
-                                strokeWidth="12"
+                                strokeWidth="10"
                             />
+                            {/* Progress circle */}
                             <circle
                                 cx="50"
                                 cy="50"
-                                r="40"
+                                r="38"
                                 fill="none"
-                                stroke="#0d9488"
-                                strokeWidth="12"
-                                strokeDasharray={`${(data?.stats.bookedCount || 0) / Math.max(data?.stats.totalLeads || 1, 1) * 251} 251`}
+                                stroke="#115e59"
+                                strokeWidth="10"
+                                strokeDasharray={`${conversionRate * 2.39} 239`}
                                 strokeLinecap="round"
                                 transform="rotate(-90 50 50)"
                             />
+                            {/* Secondary segment */}
+                            <circle
+                                cx="50"
+                                cy="50"
+                                r="38"
+                                fill="none"
+                                stroke="#fcd34d"
+                                strokeWidth="10"
+                                strokeDasharray={`${Math.min(30, 100 - conversionRate) * 2.39} 239`}
+                                strokeLinecap="round"
+                                transform={`rotate(${-90 + conversionRate * 3.6} 50 50)`}
+                            />
                         </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <span className="text-lg font-bold">
-                                {data?.stats.totalLeads ? Math.round((data?.stats.bookedCount || 0) / data.stats.totalLeads * 100) : 0}%
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">Conversion</span>
+                        <div className="donut-value">
+                            <span className="donut-percent">{conversionRate}%</span>
+                            <span className="donut-label">Successful deals</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Stats */}
                 <div className="stat-item">
-                    <span className="stat-value">{data?.stats.totalLeads || 0}</span>
-                    <span className="stat-label">Total leads</span>
-                </div>
-
-                <div className="stat-item">
-                    <span className="stat-value">{data?.stats.bookedCount || 0}</span>
-                    <span className="stat-label">Appointments</span>
+                    <span className="stat-value">{data?.stats.inProgress || 0}</span>
+                    <span className="stat-label">Tasks</span>
+                    <span className="stat-label">in progress</span>
+                    <span className="stat-link">
+                        <ArrowRight className="w-3 h-3" />
+                    </span>
                 </div>
 
                 <div className="stat-item border-r-0">
-                    <span className="stat-value">+{data?.stats.leadsToday || 0}</span>
-                    <span className="stat-label">Today</span>
-                    <Link href="/dashboard/analytics" className="text-primary text-xs flex items-center gap-1 mt-1 hover:underline">
-                        View all <ArrowRight className="h-3 w-3" />
-                    </Link>
+                    <span className="stat-value">$ {((data?.stats.bookedCount || 0) * 299).toLocaleString()}</span>
+                    <span className="stat-label">Prepayments</span>
+                    <span className="stat-label">from customers</span>
+                    <span className="stat-link">
+                        <ArrowRight className="w-3 h-3" />
+                    </span>
                 </div>
             </div>
 
-            {/* Kanban Pipeline - Like BizLink */}
-            <div className="grid grid-cols-4 gap-4">
+            {/* Kanban Pipeline - BizLink exact */}
+            <div className="pipeline">
                 {PIPELINE_COLUMNS.map((column) => {
                     const leads = leadsByStatus[column.key] || [];
-                    const Icon = column.icon;
 
                     return (
-                        <div key={column.key} className="pipeline-column">
-                            <div className="pipeline-header">
-                                <span>{column.label}</span>
-                                <span className="pipeline-count">
+                        <div key={column.key}>
+                            {/* Column Header */}
+                            <div className="column-header">
+                                <span className="column-title">{column.label}</span>
+                                <span className="column-count">
                                     {leads.length}
-                                    <TrendingUp className="h-3 w-3" />
+                                    <ArrowUpDown />
                                 </span>
                             </div>
 
-                            <div className="space-y-3">
+                            {/* Cards */}
+                            <div>
                                 {leads.length === 0 ? (
-                                    <div className="text-center py-8 text-muted-foreground text-sm">
-                                        No leads
+                                    <div className="lead-card opacity-50">
+                                        <div className="lead-card-desc text-center py-4">No leads yet</div>
                                     </div>
                                 ) : (
-                                    leads.slice(0, 5).map((lead, idx) => (
-                                        <div
-                                            key={lead.id}
-                                            className={`lead-card animate-slide-up ${idx === 0 && column.key === 'CLAIMED' ? 'lead-card-highlighted' : ''}`}
-                                            style={{ animationDelay: `${idx * 50}ms` }}
-                                        >
-                                            <div className="flex items-start justify-between mb-2">
-                                                <h4 className="lead-card-title">
-                                                    {lead.firstName} {lead.lastName}
-                                                </h4>
-                                                <button className="text-muted-foreground hover:text-foreground">
-                                                    <MoreVertical className="h-4 w-4" />
-                                                </button>
-                                            </div>
+                                    leads.slice(0, 4).map((lead, idx) => {
+                                        // Highlight third column first card (like Prime Estate)
+                                        const isHighlight = column.key === 'CLAIMED' && idx === 0;
 
-                                            <p className="lead-card-desc line-clamp-2">
-                                                {lead.address || lead.source || 'Lead from landing page'}
-                                            </p>
+                                        return (
+                                            <div
+                                                key={lead.id}
+                                                className={`lead-card animate-slide-up ${isHighlight ? 'lead-card-highlight' : ''}`}
+                                                style={{ animationDelay: `${idx * 50}ms` }}
+                                            >
+                                                <div className="lead-card-header">
+                                                    <h4 className="lead-card-title">
+                                                        {lead.firstName} {lead.lastName}
+                                                    </h4>
+                                                    <button className="lead-card-menu">
+                                                        <MoreVertical className="w-4 h-4" />
+                                                    </button>
+                                                </div>
 
-                                            <div className="lead-card-meta">
-                                                <span className="lead-card-badge">
-                                                    <Calendar className="h-3 w-3" />
-                                                    {formatDate(lead.createdAt)}
-                                                </span>
+                                                <p className="lead-card-desc">
+                                                    {lead.source || lead.address || 'Lead from landing page submission'}
+                                                </p>
 
-                                                {lead.claimedBy && (
-                                                    <span className="flex items-center gap-1">
-                                                        {lead.claimedBy === 'ai' ? (
-                                                            <Bot className="h-3 w-3 text-primary" />
-                                                        ) : (
-                                                            <User className="h-3 w-3 text-amber-600" />
+                                                {/* Extra info for highlighted card */}
+                                                {isHighlight && (
+                                                    <div className="lead-card-extra">
+                                                        {lead.address && (
+                                                            <div className="lead-card-location">
+                                                                <MapPin />
+                                                                {lead.address}{lead.city && `, ${lead.city}`}
+                                                            </div>
                                                         )}
-                                                    </span>
+                                                        {lead.email && (
+                                                            <div className="lead-card-contact">
+                                                                <Mail />
+                                                                {lead.email}
+                                                            </div>
+                                                        )}
+                                                        <div className="lead-card-manager">
+                                                            <div className="manager-avatar" />
+                                                            <div>
+                                                                <div className="manager-label">Manager</div>
+                                                                <div className="manager-name">Antony Cardenas</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 )}
 
-                                                <a
-                                                    href={`tel:${lead.phone}`}
-                                                    className="ml-auto text-primary hover:text-primary/80"
-                                                >
-                                                    <Phone className="h-3.5 w-3.5" />
-                                                </a>
+                                                <div className="lead-card-meta">
+                                                    <span className={`date-badge ${!lead.createdAt ? 'date-badge-warning' : ''}`}>
+                                                        <Calendar className="w-3 h-3" />
+                                                        {lead.createdAt ? formatDate(lead.createdAt) : 'No due date'}
+                                                    </span>
+                                                    <span className="count-badge">
+                                                        <MessageSquare />
+                                                        {Math.floor(Math.random() * 5) + 1}
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 )}
 
-                                {leads.length > 5 && (
+                                {leads.length > 4 && (
                                     <Link
                                         href={`/dashboard/leads?status=${column.key}`}
-                                        className="block text-center text-sm text-primary py-2 hover:underline"
+                                        className="block text-center text-sm text-primary py-3 hover:underline"
                                     >
-                                        View {leads.length - 5} more →
+                                        View {leads.length - 4} more →
                                     </Link>
                                 )}
                             </div>
