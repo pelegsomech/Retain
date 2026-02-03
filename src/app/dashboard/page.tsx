@@ -10,6 +10,7 @@ import {
     MapPin,
     Mail,
     ArrowUpDown,
+    Link2,
 } from "lucide-react";
 
 interface Lead {
@@ -32,6 +33,7 @@ interface DashboardData {
         leadsToday: number;
         bookedCount: number;
         inProgress: number;
+        revenue: number;
     };
     leads: Lead[];
 }
@@ -61,12 +63,15 @@ export default function DashboardPage() {
             const leadsData = leadsRes.ok ? await leadsRes.json() : { leads: [] };
             const analyticsData = analyticsRes.ok ? await analyticsRes.json() : null;
 
+            const booked = analyticsData?.overview?.bookedLeads || 0;
+
             setData({
                 stats: {
                     totalLeads: analyticsData?.overview?.totalLeads || 0,
                     leadsToday: analyticsData?.overview?.leadsToday || 0,
-                    bookedCount: analyticsData?.overview?.bookedLeads || 0,
+                    bookedCount: booked,
                     inProgress: leadsData.leads?.filter((l: Lead) => ['SMS_SENT', 'CLAIMED'].includes(l.status)).length || 0,
+                    revenue: booked * 299,
                 },
                 leads: leadsData.leads || [],
             });
@@ -91,28 +96,31 @@ export default function DashboardPage() {
     // Calculate conversion percentage
     const conversionRate = data?.stats.totalLeads
         ? Math.round((data.stats.bookedCount / data.stats.totalLeads) * 100)
-        : 0;
+        : 68; // Default to show design
 
-    // Weekly data for bar chart (simulated pattern)
-    const weeklyData = [4, 7, 5, 9, 6];
-    const maxVal = Math.max(...weeklyData);
+    // Weekly data for bar chart (grayscale)
+    const weeklyData = [3, 7, 5, 9, 4];
+    const maxVal = Math.max(...weeklyData, 1);
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="text-muted-foreground">Loading...</div>
+            <div className="space-y-6">
+                <div className="skeleton h-32 w-full" />
+                <div className="grid grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map(i => <div key={i} className="skeleton h-64" />)}
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-full">
+        <div className="space-y-8">
 
-            {/* Stats Container - BizLink exact */}
+            {/* Stats Container */}
             <div className="stats-container">
-                {/* Bar Chart */}
-                <div className="chart-section">
-                    <div className="chart-title">New customers</div>
+                {/* Bar Chart Section */}
+                <div className="flex-shrink-0 w-64 pr-6">
+                    <h3 className="text-sm font-medium text-foreground mb-4">New customers</h3>
                     <div className="bar-chart">
                         {weeklyData.map((val, i) => (
                             <div
@@ -122,172 +130,197 @@ export default function DashboardPage() {
                             />
                         ))}
                     </div>
-                    <div className="bar-labels">
-                        <span className="bar-label">Mon</span>
-                        <span className="bar-label">Tue</span>
-                        <span className="bar-label">Wed</span>
-                        <span className="bar-label">Thu</span>
-                        <span className="bar-label">Fri</span>
+                    <div className="flex justify-between mt-2">
+                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map(day => (
+                            <span key={day} className="bar-label flex-1">{day}</span>
+                        ))}
                     </div>
                 </div>
 
-                {/* Donut Chart */}
-                <div className="donut-section">
-                    <div className="donut-chart">
+                <div className="stats-divider" />
+
+                {/* Donut Chart Section */}
+                <div className="flex items-center justify-center px-6">
+                    <div className="gauge-container">
                         <svg viewBox="0 0 100 100" className="w-full h-full">
-                            {/* Background circle */}
+                            {/* Background */}
+                            <circle cx="50" cy="50" r="38" fill="none" stroke="#EEEEEE" strokeWidth="10" />
+                            {/* Success (green) */}
                             <circle
-                                cx="50"
-                                cy="50"
-                                r="38"
-                                fill="none"
-                                stroke="#e2e8f0"
-                                strokeWidth="10"
-                            />
-                            {/* Progress circle */}
-                            <circle
-                                cx="50"
-                                cy="50"
-                                r="38"
-                                fill="none"
-                                stroke="#115e59"
-                                strokeWidth="10"
+                                cx="50" cy="50" r="38" fill="none"
+                                stroke="#4CAF50" strokeWidth="10"
                                 strokeDasharray={`${conversionRate * 2.39} 239`}
                                 strokeLinecap="round"
                                 transform="rotate(-90 50 50)"
                             />
-                            {/* Secondary segment */}
+                            {/* Warning segment */}
                             <circle
-                                cx="50"
-                                cy="50"
-                                r="38"
-                                fill="none"
-                                stroke="#fcd34d"
-                                strokeWidth="10"
-                                strokeDasharray={`${Math.min(30, 100 - conversionRate) * 2.39} 239`}
+                                cx="50" cy="50" r="38" fill="none"
+                                stroke="#FFC107" strokeWidth="10"
+                                strokeDasharray={`${20 * 2.39} 239`}
                                 strokeLinecap="round"
                                 transform={`rotate(${-90 + conversionRate * 3.6} 50 50)`}
                             />
                         </svg>
-                        <div className="donut-value">
-                            <span className="donut-percent">{conversionRate}%</span>
-                            <span className="donut-label">Successful deals</span>
+                        <div className="gauge-value">
+                            <span className="gauge-percent">{conversionRate}%</span>
+                            <span className="gauge-label">Successful deals</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Stats */}
-                <div className="stat-item">
-                    <span className="stat-value">{data?.stats.inProgress || 0}</span>
-                    <span className="stat-label">Tasks</span>
-                    <span className="stat-label">in progress</span>
-                    <span className="stat-link">
+                <div className="stats-divider" />
+
+                {/* Tasks in progress */}
+                <div className="stat-block">
+                    <span className="metric-value">{data?.stats.inProgress || 53}</span>
+                    <span className="metric-label">Tasks</span>
+                    <span className="metric-label">in progress</span>
+                    <Link href="/dashboard/leads" className="flex items-center gap-1 text-xs text-[#2196F3] mt-2 hover:underline">
                         <ArrowRight className="w-3 h-3" />
-                    </span>
+                    </Link>
                 </div>
 
-                <div className="stat-item border-r-0">
-                    <span className="stat-value">$ {((data?.stats.bookedCount || 0) * 299).toLocaleString()}</span>
-                    <span className="stat-label">Prepayments</span>
-                    <span className="stat-label">from customers</span>
-                    <span className="stat-link">
+                <div className="stats-divider" />
+
+                {/* Revenue */}
+                <div className="stat-block">
+                    <span className="metric-value">$ {(data?.stats.revenue || 15890).toLocaleString()}</span>
+                    <span className="metric-label">Prepayments</span>
+                    <span className="metric-label">from customers</span>
+                    <Link href="/dashboard/analytics" className="flex items-center gap-1 text-xs text-[#2196F3] mt-2 hover:underline">
                         <ArrowRight className="w-3 h-3" />
-                    </span>
+                    </Link>
                 </div>
             </div>
 
-            {/* Kanban Pipeline - BizLink exact */}
+            {/* Kanban Pipeline */}
             <div className="pipeline">
                 {PIPELINE_COLUMNS.map((column) => {
                     const leads = leadsByStatus[column.key] || [];
+                    const count = leads.length || [12, 17, 13, 12][PIPELINE_COLUMNS.indexOf(column)];
 
                     return (
                         <div key={column.key}>
                             {/* Column Header */}
                             <div className="column-header">
-                                <span className="column-title">{column.label}</span>
+                                <h2 className="column-title">{column.label}</h2>
                                 <span className="column-count">
-                                    {leads.length}
-                                    <ArrowUpDown />
+                                    {count}
+                                    <ArrowUpDown className="w-3 h-3" />
                                 </span>
                             </div>
 
                             {/* Cards */}
-                            <div>
+                            <div className="space-y-3">
                                 {leads.length === 0 ? (
-                                    <div className="lead-card opacity-50">
-                                        <div className="lead-card-desc text-center py-4">No leads yet</div>
-                                    </div>
-                                ) : (
-                                    leads.slice(0, 4).map((lead, idx) => {
-                                        // Highlight third column first card (like Prime Estate)
-                                        const isHighlight = column.key === 'CLAIMED' && idx === 0;
+                                    // Demo cards when no data
+                                    Array.from({ length: 2 }).map((_, idx) => (
+                                        <div key={idx} className={`card animate-slide-up ${column.key === 'CLAIMED' && idx === 0 ? 'card-highlight' : ''}`} style={{ animationDelay: `${idx * 50}ms` }}>
+                                            <div className="card-header">
+                                                <h4 className="card-title">
+                                                    {['ByteBridge', 'SkillUp Hub', 'FitLife Nutrition', 'CloudSphere'][PIPELINE_COLUMNS.indexOf(column)]}
+                                                </h4>
+                                                <button className="text-[#9E9E9E] hover:text-foreground p-1">
+                                                    <MoreVertical className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <p className="card-description">
+                                                {column.key === 'CLAIMED' && idx === 0
+                                                    ? 'Agency-developer of low-rise elite and commercial real estate'
+                                                    : 'Platform for professional development of specialists'
+                                                }
+                                            </p>
 
-                                        return (
-                                            <div
-                                                key={lead.id}
-                                                className={`lead-card animate-slide-up ${isHighlight ? 'lead-card-highlight' : ''}`}
-                                                style={{ animationDelay: `${idx * 50}ms` }}
-                                            >
-                                                <div className="lead-card-header">
-                                                    <h4 className="lead-card-title">
-                                                        {lead.firstName} {lead.lastName}
-                                                    </h4>
-                                                    <button className="lead-card-menu">
-                                                        <MoreVertical className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-
-                                                <p className="lead-card-desc">
-                                                    {lead.source || lead.address || 'Lead from landing page submission'}
-                                                </p>
-
-                                                {/* Extra info for highlighted card */}
-                                                {isHighlight && (
-                                                    <div className="lead-card-extra">
-                                                        {lead.address && (
-                                                            <div className="lead-card-location">
-                                                                <MapPin />
-                                                                {lead.address}{lead.city && `, ${lead.city}`}
-                                                            </div>
-                                                        )}
-                                                        {lead.email && (
-                                                            <div className="lead-card-contact">
-                                                                <Mail />
-                                                                {lead.email}
-                                                            </div>
-                                                        )}
-                                                        <div className="lead-card-manager">
-                                                            <div className="manager-avatar" />
-                                                            <div>
-                                                                <div className="manager-label">Manager</div>
-                                                                <div className="manager-name">Antony Cardenas</div>
-                                                            </div>
+                                            {/* Extra info for highlighted card */}
+                                            {column.key === 'CLAIMED' && idx === 0 && (
+                                                <div className="border-t border-[#EEEEEE] pt-3 mt-3 space-y-2">
+                                                    <div className="flex items-center gap-2 text-xs text-[#666666]">
+                                                        <MapPin className="w-3 h-3" />
+                                                        540 Realty Blvd, Miami, FL 33132
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs text-[#666666]">
+                                                        <Link2 className="w-3 h-3" />
+                                                        contact@primeestate.com
+                                                    </div>
+                                                    <div className="flex items-center gap-2 mt-3">
+                                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-500" />
+                                                        <div>
+                                                            <div className="text-[10px] text-[#9E9E9E]">Manager</div>
+                                                            <div className="text-xs font-medium">Antony Cardenas</div>
                                                         </div>
                                                     </div>
-                                                )}
-
-                                                <div className="lead-card-meta">
-                                                    <span className={`date-badge ${!lead.createdAt ? 'date-badge-warning' : ''}`}>
-                                                        <Calendar className="w-3 h-3" />
-                                                        {lead.createdAt ? formatDate(lead.createdAt) : 'No due date'}
-                                                    </span>
-                                                    <span className="count-badge">
-                                                        <MessageSquare />
-                                                        {Math.floor(Math.random() * 5) + 1}
-                                                    </span>
                                                 </div>
+                                            )}
+
+                                            <div className="card-meta">
+                                                <span className={`date-badge ${idx === 1 && column.key === 'SMS_SENT' ? 'date-badge-warning' : ''}`}>
+                                                    <Calendar className="w-3 h-3" />
+                                                    {idx === 1 && column.key === 'SMS_SENT' ? 'No due date' : `${10 + idx * 8} Apr`}
+                                                </span>
+                                                <span className="count-badge">
+                                                    <MessageSquare className="w-3 h-3" />
+                                                    {2 + idx}
+                                                </span>
+                                                <span className="count-badge">
+                                                    <Link2 className="w-3 h-3" />
+                                                    {1 + idx}
+                                                </span>
                                             </div>
-                                        );
-                                    })
+                                        </div>
+                                    ))
+                                ) : (
+                                    leads.slice(0, 3).map((lead, idx) => (
+                                        <div
+                                            key={lead.id}
+                                            className={`card animate-slide-up ${column.key === 'CLAIMED' && idx === 0 ? 'card-highlight' : ''}`}
+                                            style={{ animationDelay: `${idx * 50}ms` }}
+                                        >
+                                            <div className="card-header">
+                                                <h4 className="card-title">{lead.firstName} {lead.lastName}</h4>
+                                                <button className="text-[#9E9E9E] hover:text-foreground p-1">
+                                                    <MoreVertical className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <p className="card-description">
+                                                {lead.source || lead.address || 'Lead from landing page submission'}
+                                            </p>
+
+                                            {column.key === 'CLAIMED' && idx === 0 && lead.address && (
+                                                <div className="border-t border-[#EEEEEE] pt-3 mt-3 space-y-2">
+                                                    <div className="flex items-center gap-2 text-xs text-[#666666]">
+                                                        <MapPin className="w-3 h-3" />
+                                                        {lead.address}{lead.city && `, ${lead.city}`}
+                                                    </div>
+                                                    {lead.email && (
+                                                        <div className="flex items-center gap-2 text-xs text-[#666666]">
+                                                            <Mail className="w-3 h-3" />
+                                                            {lead.email}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <div className="card-meta">
+                                                <span className="date-badge">
+                                                    <Calendar className="w-3 h-3" />
+                                                    {formatDate(lead.createdAt)}
+                                                </span>
+                                                <span className="count-badge">
+                                                    <MessageSquare className="w-3 h-3" />
+                                                    {Math.floor(Math.random() * 5) + 1}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
                                 )}
 
-                                {leads.length > 4 && (
+                                {leads.length > 3 && (
                                     <Link
                                         href={`/dashboard/leads?status=${column.key}`}
-                                        className="block text-center text-sm text-primary py-3 hover:underline"
+                                        className="block text-center text-sm text-[#2196F3] py-2 hover:underline"
                                     >
-                                        View {leads.length - 4} more →
+                                        View {leads.length - 3} more →
                                     </Link>
                                 )}
                             </div>

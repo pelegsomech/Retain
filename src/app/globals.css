@@ -4,7 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ========================================
-   RETAIN - BizLink Design System (Pixel-Perfect)
+   RETAIN Design System
+   Black primary, light backgrounds, Inter font, 8px grid
    ======================================== */
 
 @theme inline {
@@ -52,95 +53,98 @@
 }
 
 /* ========================================
-   Color Tokens - BizLink Exact
+   Color Tokens - RETAIN Design System
    ======================================== */
 :root {
   --radius: 8px;
 
-  /* Backgrounds */
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  /* Backgrounds - Light scheme */
+  --background: #F5F5F5;
+  --foreground: #000000;
 
   /* Cards - Pure white */
-  --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card: #FFFFFF;
+  --card-foreground: #000000;
 
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover: #FFFFFF;
+  --popover-foreground: #000000;
 
-  /* Primary - BizLink teal */
-  --primary: #115e59;
-  --primary-foreground: #ffffff;
+  /* Primary - Black */
+  --primary: #000000;
+  --primary-foreground: #FFFFFF;
 
-  /* Secondary - Cream highlight (Prime Estate card) */
-  --secondary: #fef3c7;
-  --secondary-foreground: #92400e;
+  /* Secondary */
+  --secondary: #EEEEEE;
+  --secondary-foreground: #333333;
 
   /* Muted */
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --muted: #FAFAFA;
+  --muted-foreground: #666666;
 
-  /* Accent */
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
+  /* Accent - Blue for links/active */
+  --accent: #F5F5F5;
+  --accent-foreground: #2196F3;
 
-  --destructive: #ef4444;
+  /* Status colors */
+  --success: #4CAF50;
+  --warning: #FFC107;
+  --destructive: #F44336;
 
-  /* Borders - Very subtle */
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #115e59;
+  /* Borders */
+  --border: #CCCCCC;
+  --input: #CCCCCC;
+  --ring: #000000;
 
-  /* Charts */
-  --chart-1: #0f172a;
-  --chart-2: #115e59;
-  --chart-3: #f59e0b;
-  --chart-4: #8b5cf6;
-  --chart-5: #ec4899;
+  /* Charts - Grayscale */
+  --chart-1: #000000;
+  --chart-2: #333333;
+  --chart-3: #666666;
+  --chart-4: #999999;
+  --chart-5: #CCCCCC;
 
   /* Sidebar */
-  --sidebar: #ffffff;
-  --sidebar-foreground: #334155;
-  --sidebar-primary: #115e59;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: #0f172a;
-  --sidebar-border: #f1f5f9;
-  --sidebar-ring: #115e59;
+  --sidebar: #FAFAFA;
+  --sidebar-foreground: #333333;
+  --sidebar-primary: #000000;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EEEEEE;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #EEEEEE;
+  --sidebar-ring: #000000;
 }
 
 /* Dark mode */
 .dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --card: #1e293b;
-  --card-foreground: #f8fafc;
-  --popover: #1e293b;
-  --popover-foreground: #f8fafc;
-  --primary: #14b8a6;
-  --primary-foreground: #0f172a;
-  --secondary: #fef3c7;
-  --secondary-foreground: #92400e;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #334155;
-  --accent-foreground: #f8fafc;
-  --destructive: #f87171;
-  --border: #334155;
-  --input: #334155;
-  --ring: #14b8a6;
-  --sidebar: #1e293b;
-  --sidebar-foreground: #e2e8f0;
-  --sidebar-primary: #14b8a6;
-  --sidebar-primary-foreground: #0f172a;
-  --sidebar-accent: #334155;
-  --sidebar-accent-foreground: #f8fafc;
-  --sidebar-border: #334155;
-  --sidebar-ring: #14b8a6;
+  --background: #121212;
+  --foreground: #FFFFFF;
+  --card: #1E1E1E;
+  --card-foreground: #FFFFFF;
+  --popover: #1E1E1E;
+  --popover-foreground: #FFFFFF;
+  --primary: #FFFFFF;
+  --primary-foreground: #000000;
+  --secondary: #333333;
+  --secondary-foreground: #EEEEEE;
+  --muted: #1E1E1E;
+  --muted-foreground: #9E9E9E;
+  --accent: #333333;
+  --accent-foreground: #64B5F6;
+  --border: #333333;
+  --input: #333333;
+  --ring: #FFFFFF;
+  --sidebar: #1E1E1E;
+  --sidebar-foreground: #EEEEEE;
+  --sidebar-primary: #FFFFFF;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #333333;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #333333;
+  --sidebar-ring: #FFFFFF;
 }
 
 /* ========================================
-   Base - Typography
+   Base Layer - Typography
+   Font: Inter, 8px grid system
    ======================================== */
 @layer base {
   * {
@@ -148,36 +152,46 @@
   }
 
   html {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "cv11", "ss01";
   }
 
   body {
     @apply bg-background text-foreground;
-    font-size: 14px;
+    font-size: 1rem;
+    /* 16px */
     line-height: 1.5;
   }
 
+  /* Typography scale */
   h1 {
-    font-size: 24px;
-    font-weight: 600;
+    font-size: 2rem;
+    /* 32px */
+    font-weight: 700;
     line-height: 1.2;
-    color: #0f172a;
   }
 
   h2 {
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1.3;
-    color: #0f172a;
+    font-size: 1.5rem;
+    /* 24px */
+    font-weight: 700;
+    line-height: 1.2;
   }
 
   h3 {
-    font-size: 15px;
+    font-size: 1.25rem;
+    /* 20px */
     font-weight: 600;
-    line-height: 1.4;
-    color: #0f172a;
+    line-height: 1.2;
+  }
+
+  /* Text truncation - no word breaking */
+  .truncate-text {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    word-break: normal;
   }
 
   :focus-visible {
@@ -187,361 +201,362 @@
 }
 
 /* ========================================
-   Sidebar - BizLink Exact
+   Spacing System - 8px Grid
+   ======================================== */
+:root {
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+}
+
+/* ========================================
+   Buttons
    ======================================== */
 
-/* Nav item - 36px height, proper padding */
+/* Primary: Black bg, white text */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 8px 16px;
+  background: #000000;
+  color: #FFFFFF;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 4px;
+  transition: opacity 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Secondary: White bg, black border */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 8px 16px;
+  background: #FFFFFF;
+  color: #000000;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid #000000;
+  border-radius: 4px;
+  transition: opacity 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  opacity: 0.9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Icon button (toolbar) */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  background: transparent;
+  color: #666666;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 4px;
+  transition: background 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+}
+
+.btn-icon:hover {
+  background: #EEEEEE;
+  color: #000000;
+}
+
+/* ========================================
+   Cards
+   ======================================== */
+
+.card {
+  background: #FFFFFF;
+  border: 1px solid #CCCCCC;
+  border-radius: 8px;
+  padding: 16px;
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #000000;
+  line-height: 1.3;
+}
+
+.card-description {
+  font-size: 0.875rem;
+  color: #666666;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Highlighted card (yellow/cream) */
+.card-highlight {
+  background: #FEF3C7;
+  border-color: #FCD34D;
+}
+
+/* ========================================
+   Navigation
+   ======================================== */
+
+/* Sidebar: 240px, #FAFAFA background */
+.sidebar {
+  width: 240px;
+  background: #FAFAFA;
+  border-right: 1px solid #EEEEEE;
+}
+
+/* Nav item: 40px height, aligned to 8px grid */
 .nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 36px;
-  padding: 0 12px;
-  margin: 2px 8px;
-  border-radius: 6px;
-  font-size: 14px;
+  height: 40px;
+  padding: 0 16px;
+  font-size: 0.875rem;
   font-weight: 500;
-  color: #64748b;
-  transition: all 0.15s ease;
+  color: #666666;
+  border-radius: 4px;
+  margin: 0 8px;
+  transition: background 0.15s ease, color 0.15s ease;
   cursor: pointer;
 }
 
 .nav-item:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: #EEEEEE;
+  color: #000000;
 }
 
 .nav-item-active {
-  background: #f1f5f9;
-  color: #0f172a;
-  position: relative;
-}
-
-.nav-item-active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 3px;
-  background: #115e59;
-  border-radius: 0 2px 2px 0;
+  background: #EEEEEE;
+  color: #000000;
 }
 
 .nav-item-icon {
   width: 20px;
   height: 20px;
-  stroke-width: 1.75;
+  flex-shrink: 0;
 }
 
 .nav-item-count {
   margin-left: auto;
-  font-size: 12px;
-  font-weight: 500;
-  color: #64748b;
+  font-size: 0.75rem;
+  color: #9E9E9E;
 }
 
-/* Section header - Projects, Members */
+/* Section label */
 .section-label {
-  padding: 24px 20px 8px;
-  font-size: 11px;
+  padding: 24px 16px 8px;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
+  color: #9E9E9E;
 }
 
-/* Project item */
-.project-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 36px;
-  padding: 0 20px;
-  font-size: 14px;
-  color: #334155;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.project-item:hover {
-  background: #f8fafc;
-}
-
-.project-icon {
-  width: 20px;
-  height: 20px;
-  stroke-width: 1.75;
-  color: #64748b;
-}
-
-.project-count {
-  margin-left: auto;
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-/* Member row - with photo avatars */
+/* Member item */
 .member-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 44px;
-  padding: 0 20px;
+  height: 48px;
+  padding: 0 16px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s ease;
 }
 
 .member-item:hover {
-  background: #f8fafc;
+  background: #EEEEEE;
 }
 
 .member-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  object-fit: cover;
-  background: linear-gradient(135deg, #f59e0b, #fbbf24);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: white;
+  color: #FFFFFF;
 }
 
-.member-avatar-teal {
-  background: linear-gradient(135deg, #0d9488, #14b8a6);
+.member-avatar-black {
+  background: #333333;
 }
 
-.member-avatar-amber {
-  background: linear-gradient(135deg, #f59e0b, #fbbf24);
-}
-
-.member-avatar-purple {
-  background: linear-gradient(135deg, #8b5cf6, #a78bfa);
-}
-
-.member-avatar-rose {
-  background: linear-gradient(135deg, #f43f5e, #fb7185);
+.member-avatar-gray {
+  background: #666666;
 }
 
 .member-avatar-blue {
-  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  background: #2196F3;
 }
 
-.member-info {
-  flex: 1;
-  min-width: 0;
+.member-avatar-green {
+  background: #4CAF50;
+}
+
+.member-avatar-amber {
+  background: #FFC107;
+  color: #000;
 }
 
 .member-name {
-  font-size: 13px;
+  font-size: 0.875rem;
   font-weight: 500;
-  color: #0f172a;
-  line-height: 1.3;
+  color: #000000;
 }
 
 .member-role {
-  font-size: 11px;
-  color: #94a3b8;
-  line-height: 1.3;
-}
-
-/* Add member button */
-.add-member {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 36px;
-  padding: 0 20px;
-  font-size: 13px;
-  color: #64748b;
-  cursor: pointer;
-}
-
-.add-member:hover {
-  color: #0f172a;
-}
-
-.add-member-icon {
-  width: 24px;
-  height: 24px;
-  border: 1.5px dashed #cbd5e1;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 0.75rem;
+  color: #9E9E9E;
 }
 
 /* ========================================
-   Header - BizLink Exact
+   Header / Top Bar
    ======================================== */
 
-/* Search input - 44px height */
+.header {
+  height: 64px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #EEEEEE;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+}
+
+/* Search input */
 .search-input {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 320px;
-  height: 44px;
+  height: 40px;
   padding: 0 16px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  transition: all 0.15s;
+  background: #FFFFFF;
+  border: 1px solid #CCCCCC;
+  border-radius: 4px;
+  transition: border-color 0.15s ease;
 }
 
 .search-input:focus-within {
-  border-color: #115e59;
-  box-shadow: 0 0 0 3px rgba(17, 94, 89, 0.1);
+  border-color: #000000;
 }
 
 .search-input input {
   flex: 1;
   border: none;
   outline: none;
-  font-size: 14px;
-  color: #0f172a;
+  font-size: 0.875rem;
+  color: #000000;
   background: transparent;
 }
 
 .search-input input::placeholder {
-  color: #94a3b8;
+  color: #9E9E9E;
 }
 
 .search-input svg {
-  width: 18px;
-  height: 18px;
-  color: #94a3b8;
-}
-
-/* Toolbar button - Sort by, Filters, Me */
-.toolbar-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 16px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #334155;
-  border-radius: 8px;
-  transition: all 0.15s;
-  cursor: pointer;
-}
-
-.toolbar-btn:hover {
-  background: #f1f5f9;
-}
-
-.toolbar-btn svg {
-  width: 18px;
-  height: 18px;
-  stroke-width: 1.75;
-}
-
-/* Primary button - Add customer */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 20px;
-  background: #115e59;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 8px;
-  transition: all 0.15s;
-  cursor: pointer;
-}
-
-.btn-primary:hover {
-  background: #0f4f4a;
-}
-
-.btn-primary svg {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2;
+  width: 16px;
+  height: 16px;
+  color: #9E9E9E;
 }
 
 /* ========================================
-   Stats Row - BizLink Exact
+   Charts & Metrics
    ======================================== */
 
-.stats-container {
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  padding: 24px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+/* Metric value - Large bold numbers */
+.metric-value {
+  font-size: 2.5rem;
+  /* 40px */
+  font-weight: 700;
+  line-height: 1;
+  color: #000000;
 }
 
-/* Bar chart section */
-.chart-section {
-  flex: 0 0 280px;
-  padding-right: 32px;
-  border-right: 1px solid #e2e8f0;
+.metric-label {
+  font-size: 0.875rem;
+  color: #666666;
+  margin-top: 4px;
 }
 
-.chart-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #0f172a;
-  margin-bottom: 16px;
-}
-
+/* Bar chart container */
 .bar-chart {
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: 8px;
   height: 80px;
 }
 
 .bar {
   flex: 1;
-  background: #0f172a;
+  background: #000000;
   border-radius: 2px;
-  transition: all 0.2s;
-  cursor: pointer;
+  transition: background 0.2s ease;
 }
 
 .bar:hover {
-  background: #115e59;
-}
-
-.bar-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 8px;
+  background: #333333;
 }
 
 .bar-label {
-  font-size: 11px;
-  color: #94a3b8;
+  font-size: 0.75rem;
+  color: #9E9E9E;
+  text-align: center;
 }
 
-/* Donut chart section */
-.donut-section {
-  flex: 0 0 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 32px;
-  border-right: 1px solid #e2e8f0;
-}
-
-.donut-chart {
+/* Gauge / Donut chart */
+.gauge-container {
   position: relative;
   width: 100px;
   height: 100px;
 }
 
-.donut-value {
+.gauge-value {
   position: absolute;
   inset: 0;
   display: flex;
@@ -550,71 +565,27 @@
   justify-content: center;
 }
 
-.donut-percent {
-  font-size: 20px;
-  font-weight: 600;
-  color: #0f172a;
+.gauge-percent {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #000000;
 }
 
-.donut-label {
-  font-size: 10px;
-  color: #94a3b8;
-}
-
-/* Stat item */
-.stat-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0 24px;
-  border-right: 1px solid #e2e8f0;
-}
-
-.stat-item:last-child {
-  border-right: none;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 600;
-  color: #0f172a;
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: #94a3b8;
-  margin-top: 4px;
-}
-
-.stat-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 8px;
-  font-size: 12px;
-  color: #115e59;
-  cursor: pointer;
-}
-
-.stat-link:hover {
-  text-decoration: underline;
+.gauge-label {
+  font-size: 0.625rem;
+  color: #9E9E9E;
 }
 
 /* ========================================
-   Kanban Pipeline - BizLink Exact
+   Pipeline / Kanban
    ======================================== */
 
 .pipeline {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-top: 32px;
 }
 
-/* Column header */
 .column-header {
   display: flex;
   align-items: center;
@@ -623,9 +594,9 @@
 }
 
 .column-title {
-  font-size: 18px;
+  font-size: 1.25rem;
   font-weight: 600;
-  color: #0f172a;
+  color: #000000;
 }
 
 .column-count {
@@ -633,78 +604,11 @@
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: #f1f5f9;
+  background: #EEEEEE;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
-  color: #64748b;
-}
-
-.column-count svg {
-  width: 12px;
-  height: 12px;
-}
-
-/* Lead card - BizLink exact */
-.lead-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.lead-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
-}
-
-/* Highlighted card (cream background) */
-.lead-card-highlight {
-  background: #fef3c7;
-  border-color: #fcd34d;
-}
-
-.lead-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.lead-card-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #0f172a;
-  line-height: 1.3;
-}
-
-.lead-card-menu {
-  padding: 4px;
-  color: #94a3b8;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.lead-card-menu:hover {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-.lead-card-desc {
-  font-size: 13px;
-  color: #64748b;
-  line-height: 1.5;
-  margin-bottom: 12px;
-}
-
-/* Card metadata row */
-.lead-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  color: #666666;
 }
 
 /* Date badge */
@@ -713,11 +617,11 @@
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: #f1f5f9;
+  background: #EEEEEE;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
-  color: #64748b;
+  color: #666666;
 }
 
 .date-badge svg {
@@ -725,13 +629,18 @@
   height: 12px;
 }
 
-/* Count badges */
+.date-badge-warning {
+  background: #FEF2F2;
+  color: #F44336;
+}
+
+/* Count badge */
 .count-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
-  color: #94a3b8;
+  font-size: 0.75rem;
+  color: #9E9E9E;
 }
 
 .count-badge svg {
@@ -739,60 +648,33 @@
   height: 14px;
 }
 
-/* Red "No due date" badge */
-.date-badge-warning {
-  background: #fef2f2;
-  color: #dc2626;
-}
+/* ========================================
+   Stats Container
+   ======================================== */
 
-/* Card with extra info (like Prime Estate) */
-.lead-card-extra {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
-}
-
-.lead-card-location,
-.lead-card-contact {
+.stats-container {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: #64748b;
-  margin-bottom: 6px;
+  align-items: stretch;
+  padding: 24px;
+  background: #FFFFFF;
+  border: 1px solid #CCCCCC;
+  border-radius: 8px;
+  gap: 0;
 }
 
-.lead-card-location svg,
-.lead-card-contact svg {
-  width: 14px;
-  height: 14px;
-  color: #94a3b8;
+.stats-divider {
+  width: 1px;
+  background: #EEEEEE;
+  margin: 0 24px;
 }
 
-/* Manager row */
-.lead-card-manager {
+.stat-block {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.manager-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #f59e0b, #fbbf24);
-}
-
-.manager-label {
-  font-size: 11px;
-  color: #94a3b8;
-}
-
-.manager-name {
-  font-size: 12px;
-  font-weight: 500;
-  color: #0f172a;
+  justify-content: center;
+  padding: 0 16px;
+  flex: 1;
 }
 
 /* ========================================
@@ -828,7 +710,27 @@
   animation: slideUp 0.25s ease forwards;
 }
 
-/* Scrollbar */
+/* Loading skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #EEEEEE 25%, #F5F5F5 50%, #EEEEEE 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ========================================
+   Scrollbar
+   ======================================== */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -839,14 +741,34 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #CCCCCC;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #9E9E9E;
 }
 
 ::selection {
-  background: rgba(17, 94, 89, 0.15);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+   Responsive Breakpoints
+   ======================================== */
+@media (max-width: 768px) {
+  .pipeline {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-container {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .stats-divider {
+    width: 100%;
+    height: 1px;
+    margin: 0;
+  }
 }
