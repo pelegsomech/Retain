@@ -24,8 +24,10 @@ import {
     Search,
     Filter,
     RefreshCcw,
-    MessageSquare
+    MessageSquare,
+    UserPlus
 } from "lucide-react";
+import { CreateLeadModal } from "@/components/CreateLeadModal";
 
 interface Lead {
     id: string;
@@ -43,7 +45,7 @@ interface Lead {
     aiCallOutcome: string | null;
     aiCallDuration: number | null;
     appointmentTime: string | null;
-    createdAt: string;
+    createdAt: string | { _seconds: number; _nanoseconds: number };
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -77,6 +79,7 @@ export default function LeadsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [showCreateModal, setShowCreateModal] = useState(false);
     const [total, setTotal] = useState(0);
 
     useEffect(() => {
@@ -127,8 +130,21 @@ export default function LeadsPage() {
         }
     };
 
-    const formatTimeAgo = (dateString: string) => {
-        const date = new Date(dateString);
+    const formatTimeAgo = (dateValue: string | { _seconds: number; _nanoseconds: number }) => {
+        let date: Date;
+
+        // Handle Firestore Timestamp objects
+        if (typeof dateValue === 'object' && dateValue !== null && '_seconds' in dateValue) {
+            date = new Date(dateValue._seconds * 1000);
+        } else {
+            date = new Date(dateValue as string);
+        }
+
+        // Check for invalid date
+        if (isNaN(date.getTime())) {
+            return 'Just now';
+        }
+
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
         const diffMins = Math.floor(diffMs / 60000);
@@ -155,11 +171,24 @@ export default function LeadsPage() {
                     <h1 className="text-3xl font-bold">Leads</h1>
                     <p className="text-muted-foreground">Manage your lead pipeline</p>
                 </div>
-                <Button variant="outline" onClick={fetchLeads}>
-                    <RefreshCcw className="mr-2 h-4 w-4" />
-                    Refresh
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={fetchLeads}>
+                        <RefreshCcw className="mr-2 h-4 w-4" />
+                        Refresh
+                    </Button>
+                    <Button onClick={() => setShowCreateModal(true)}>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        New Lead
+                    </Button>
+                </div>
             </div>
+
+            {/* Create Lead Modal */}
+            <CreateLeadModal
+                open={showCreateModal}
+                onOpenChange={setShowCreateModal}
+                onSuccess={fetchLeads}
+            />
 
             {/* Stats */}
             <div className="grid grid-cols-4 gap-4">

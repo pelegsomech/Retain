@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import {
     collections,
     Timestamp,
-    getTenantByClerkOrgId,
     type LanderPage,
 } from '@/lib/firebase-admin'
+import { getOrCreateTenant, isAuthError } from '@/lib/auth'
 import { z } from 'zod'
 
 const landerSchema = z.object({
@@ -29,18 +28,15 @@ const landerSchema = z.object({
 
 // GET /api/landers - List all landers for current tenant
 export async function GET() {
+    const authResult = await getOrCreateTenant()
+
+    if (isAuthError(authResult)) {
+        return authResult
+    }
+
+    const { tenant } = authResult
+
     try {
-        const { orgId } = await auth()
-
-        if (!orgId) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenant = await getTenantByClerkOrgId(orgId)
-
-        if (!tenant) {
-            return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
-        }
 
         const snapshot = await collections.landerPages
             .where('tenantId', '==', tenant.id)
@@ -72,18 +68,15 @@ export async function GET() {
 
 // POST /api/landers - Create a new lander
 export async function POST(req: NextRequest) {
+    const authResult = await getOrCreateTenant()
+
+    if (isAuthError(authResult)) {
+        return authResult
+    }
+
+    const { tenant } = authResult
+
     try {
-        const { orgId } = await auth()
-
-        if (!orgId) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenant = await getTenantByClerkOrgId(orgId)
-
-        if (!tenant) {
-            return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
-        }
 
         const body = await req.json()
         const parsed = landerSchema.safeParse(body)

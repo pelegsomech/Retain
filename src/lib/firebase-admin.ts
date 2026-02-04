@@ -203,15 +203,34 @@ export interface AppEvent {
  * Get tenant by Clerk organization ID
  */
 export async function getTenantByClerkOrgId(clerkOrgId: string): Promise<Tenant | null> {
-    const snapshot = await collections.tenants
-        .where('clerkOrgId', '==', clerkOrgId)
-        .limit(1)
-        .get()
+    try {
+        console.log(`[Firestore] Looking up tenant with clerkOrgId: ${clerkOrgId}`)
 
-    if (snapshot.empty) return null
+        // First, try direct document lookup (faster if doc ID matches)
+        const directDoc = await collections.tenants.doc(clerkOrgId).get()
+        if (directDoc.exists) {
+            console.log(`[Firestore] Found tenant via direct lookup: ${directDoc.id}`)
+            return { id: directDoc.id, ...directDoc.data() } as Tenant
+        }
 
-    const doc = snapshot.docs[0]
-    return { id: doc.id, ...doc.data() } as Tenant
+        // Fallback to query
+        const snapshot = await collections.tenants
+            .where('clerkOrgId', '==', clerkOrgId)
+            .limit(1)
+            .get()
+
+        if (snapshot.empty) {
+            console.log(`[Firestore] No tenant found for clerkOrgId: ${clerkOrgId}`)
+            return null
+        }
+
+        const doc = snapshot.docs[0]
+        console.log(`[Firestore] Found tenant via query: ${doc.id}`)
+        return { id: doc.id, ...doc.data() } as Tenant
+    } catch (error) {
+        console.error(`[Firestore] Error looking up tenant for ${clerkOrgId}:`, error)
+        throw error
+    }
 }
 
 /**

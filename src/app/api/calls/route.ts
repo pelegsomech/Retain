@@ -1,26 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import {
     collections,
-    getTenantByClerkOrgId,
     type Lead,
 } from '@/lib/firebase-admin'
+import { getOrCreateTenant, isAuthError } from '@/lib/auth'
 
 // GET /api/calls - List AI calls for current tenant
 export async function GET(req: NextRequest) {
+    const authResult = await getOrCreateTenant()
+
+    if (isAuthError(authResult)) {
+        return authResult
+    }
+
+    const { tenant } = authResult
+
     try {
-        const { orgId } = await auth()
-
-        if (!orgId) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        const tenant = await getTenantByClerkOrgId(orgId)
-
-        if (!tenant) {
-            return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
-        }
-
         const url = new URL(req.url)
         const limit = parseInt(url.searchParams.get('limit') || '50')
         const offset = parseInt(url.searchParams.get('offset') || '0')

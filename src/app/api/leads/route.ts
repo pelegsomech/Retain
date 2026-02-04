@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import {
     collections,
     Timestamp,
-    getTenantByClerkOrgId,
     logEvent,
     type Lead,
     type LeadStatus,
 } from '@/lib/firebase-admin'
+import { getOrCreateTenant, isAuthError } from '@/lib/auth'
 import { leadFormSchema } from '@/lib/validations'
 import { startEscalation } from '@/lib/escalation'
 
-// POST /api/leads - Create a new lead (from landing page)
+// POST /api/leads - Create a new lead (from landing page OR dashboard)
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
@@ -25,7 +24,18 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        const { tenantId, landingPageId, consentText } = body
+        // Get tenantId from body (landing page flow) or from auth (dashboard flow)
+        let tenantId = body.tenantId
+        const landingPageId = body.landingPageId
+
+        // If no tenantId provided, try to get from authenticated user
+        if (!tenantId) {
+            const authResult = await getOrCreateTenant()
+            if (isAuthError(authResult)) {
+                return authResult
+            }
+            tenantId = authResult.tenant.id
+        }
 
         if (!tenantId) {
             return NextResponse.json(
@@ -39,27 +49,29 @@ export async function POST(req: NextRequest) {
             req.headers.get('x-real-ip') ||
             'unknown'
 
-        // Create lead document
+        // Create lead document - only include defined values (Firestore rejects undefined)
         const leadRef = collections.leads.doc()
-        const leadData: Omit<Lead, 'id'> = {
-            tenantId,
-            firstName: parsed.data.firstName,
-            lastName: parsed.data.lastName || undefined,
-            phone: parsed.data.phone,
-            email: parsed.data.email || undefined,
-            address: parsed.data.address || undefined,
-            city: parsed.data.city || undefined,
-            state: parsed.data.state || undefined,
-            zip: parsed.data.zip || undefined,
-            utmSource: parsed.data.utmSource || undefined,
-            utmMedium: parsed.data.utmMedium || undefined,
-            utmCampaign: parsed.data.utmCampaign || undefined,
-            landerId: landingPageId || undefined,
-            status: 'NEW' as LeadStatus,
-            aiConsentGiven: true,
-            createdAt: Timestamp.now(),
-            updatedAt: Timestamp.now(),
-        }
+        const leadData = Object.fromEntries(
+            Object.entries({
+                tenantId,
+                firstName: parsed.data.firstName,
+                lastName: parsed.data.lastName || null,
+                phone: parsed.data.phone,
+                email: parsed.data.email || null,
+                address: parsed.data.address || null,
+                city: parsed.data.city || null,
+                state: parsed.data.state || null,
+                zip: parsed.data.zip || null,
+                utmSource: parsed.data.utmSource || null,
+                utmMedium: parsed.data.utmMedium || null,
+                utmCampaign: parsed.data.utmCampaign || null,
+                landerId: landingPageId || null,
+                status: 'NEW' as LeadStatus,
+                aiConsentGiven: true,
+                createdAt: Timestamp.now(),
+                updatedAt: Timestamp.now(),
+            }).filter(([_, v]) => v !== null && v !== undefined)
+        )
 
         await leadRef.set(leadData)
 
@@ -84,25 +96,15 @@ export async function POST(req: NextRequest) {
 
 // GET /api/leads - List leads for current tenant (authenticated)
 export async function GET(req: NextRequest) {
+    const authResult = await getOrCreateTenant()
+
+    if (isAuthError(authResult)) {
+        return authResult
+    }
+
+    const { tenant } = authResult
+
     try {
-        const { orgId } = await auth()
-
-        if (!orgId) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            )
-        }
-
-        // Find tenant by Clerk org ID
-        const tenant = await getTenantByClerkOrgId(orgId)
-
-        if (!tenant) {
-            return NextResponse.json(
-                { error: 'Tenant not found' },
-                { status: 404 }
-            )
-        }
 
         // Parse query params
         const url = new URL(req.url)

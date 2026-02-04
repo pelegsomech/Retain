@@ -1,25 +1,20 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import {
     collections,
-    getTenantByClerkOrgId,
     type Lead,
 } from '@/lib/firebase-admin'
+import { getOrCreateTenant, isAuthError } from '@/lib/auth'
 
 // GET /api/analytics - Get analytics for current tenant
 export async function GET() {
     try {
-        const { orgId } = await auth()
+        const authResult = await getOrCreateTenant()
 
-        if (!orgId) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        if (isAuthError(authResult)) {
+            return authResult
         }
 
-        const tenant = await getTenantByClerkOrgId(orgId)
-
-        if (!tenant) {
-            return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
-        }
+        const { tenant } = authResult
 
         // Date ranges
         const now = new Date()
@@ -153,3 +148,4 @@ export async function GET() {
         return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 })
     }
 }
+

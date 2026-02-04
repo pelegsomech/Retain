@@ -3,9 +3,9 @@ import { auth } from '@clerk/nextjs/server'
 import {
     collections,
     Timestamp,
-    getTenantByClerkOrgId,
     type Tenant,
 } from '@/lib/firebase-admin'
+import { getOrCreateTenant, isAuthError } from '@/lib/auth'
 
 // POST /api/tenants - Create a new tenant (during onboarding)
 export async function POST(req: NextRequest) {
@@ -89,69 +89,43 @@ export async function POST(req: NextRequest) {
 
 // GET /api/tenants - Get current user's tenant
 export async function GET() {
-    try {
-        const { orgId } = await auth()
+    const authResult = await getOrCreateTenant()
 
-        if (!orgId) {
-            return NextResponse.json(
-                { error: 'No organization selected' },
-                { status: 400 }
-            )
-        }
-
-        const tenant = await getTenantByClerkOrgId(orgId)
-
-        if (!tenant) {
-            return NextResponse.json(
-                { error: 'Tenant not found' },
-                { status: 404 }
-            )
-        }
-
-        // Get counts
-        const [leadsSnapshot, landersSnapshot] = await Promise.all([
-            collections.leads.where('tenantId', '==', tenant.id).count().get(),
-            collections.landerPages.where('tenantId', '==', tenant.id).count().get(),
-        ])
-
-        const tenantWithCounts = {
-            ...tenant,
-            _count: {
-                leads: leadsSnapshot.data().count,
-                landerPages: landersSnapshot.data().count,
-            },
-        }
-
-        return NextResponse.json({ tenant: tenantWithCounts })
-    } catch (error) {
-        console.error('[API] Tenant fetch failed:', error)
-        return NextResponse.json(
-            { error: 'Failed to fetch tenant' },
-            { status: 500 }
-        )
+    if (isAuthError(authResult)) {
+        return authResult
     }
+
+    const { tenant } = authResult
+
+    // Get counts
+    const [leadsSnapshot, landersSnapshot] = await Promise.all([
+        collections.leads.where('tenantId', '==', tenant.id).count().get(),
+        collections.landerPages.where('tenantId', '==', tenant.id).count().get(),
+    ])
+
+    const tenantWithCounts = {
+        ...tenant,
+        _count: {
+            leads: leadsSnapshot.data().count,
+            landerPages: landersSnapshot.data().count,
+        },
+    }
+
+    return NextResponse.json({ tenant: tenantWithCounts })
 }
+
 
 // PATCH /api/tenants - Update current tenant
 export async function PATCH(req: NextRequest) {
+    const authResult = await getOrCreateTenant()
+
+    if (isAuthError(authResult)) {
+        return authResult
+    }
+
+    const { tenant } = authResult
+
     try {
-        const { orgId } = await auth()
-
-        if (!orgId) {
-            return NextResponse.json(
-                { error: 'No organization selected' },
-                { status: 400 }
-            )
-        }
-
-        const tenant = await getTenantByClerkOrgId(orgId)
-
-        if (!tenant) {
-            return NextResponse.json(
-                { error: 'Tenant not found' },
-                { status: 404 }
-            )
-        }
 
         const body = await req.json()
         const allowedFields = [
