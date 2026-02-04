@@ -18,6 +18,13 @@ const isPublicRoute = createRouteMatcher([
     '/c/(.*)',           // Claim links
 ]);
 
+// Create the Clerk middleware handler
+const clerkHandler = clerkMiddleware(async (auth, req) => {
+    if (!isPublicRoute(req)) {
+        await auth.protect();
+    }
+});
+
 export default async function middleware(req: NextRequest) {
     // Completely bypass Clerk for external API routes
     // These use their own auth (API keys, cron secrets, etc.)
@@ -26,11 +33,7 @@ export default async function middleware(req: NextRequest) {
     }
 
     // For all other routes, use Clerk middleware
-    return clerkMiddleware(async (auth, request) => {
-        if (!isPublicRoute(request)) {
-            await auth.protect();
-        }
-    })(req);
+    return clerkHandler(req, {} as any);
 }
 
 export const config = {
