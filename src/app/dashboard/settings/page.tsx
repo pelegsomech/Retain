@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,8 @@ import {
     Clock,
     MessageSquare,
     Wrench,
+    Users,
+    ChevronRight,
 } from "lucide-react";
 
 // Contractor types for dropdown
@@ -256,6 +259,26 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
 
+            {/* Team Management Link */}
+            <Link href="/dashboard/settings/team">
+                <Card className="hover:border-black transition-colors cursor-pointer group">
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <Users className="h-6 w-6 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                                <div className="font-medium group-hover:underline">Team Members</div>
+                                <div className="text-sm text-[#666666]">
+                                    Manage who receives lead claim SMS notifications
+                                </div>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-[#CCCCCC] group-hover:text-black transition-colors" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </Link>
+
             {/* AI Voice Configuration */}
             <Card>
                 <CardHeader>
@@ -276,8 +299,8 @@ export default function SettingsPage() {
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, aiToneStyle: tone.value }))}
                                     className={`p-4 rounded-lg border-2 text-left transition-all ${formData.aiToneStyle === tone.value
-                                            ? 'border-black bg-[#FAFAFA]'
-                                            : 'border-[#EEEEEE] hover:border-[#CCCCCC]'
+                                        ? 'border-black bg-[#FAFAFA]'
+                                        : 'border-[#EEEEEE] hover:border-[#CCCCCC]'
                                         }`}
                                 >
                                     <div className="font-medium">{tone.label}</div>

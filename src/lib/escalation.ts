@@ -38,13 +38,21 @@ export function verifyClaimToken(token: string): ClaimPayload | null {
  * Start escalation flow for a new lead
  * 1. Generate claim token
  * 2. Store in Redis with TTL
- * 3. Send SMS to contractor
+ * 3. Send SMS to all active team members
  * 4. Update lead status
  */
 export async function startEscalation(leadId: string): Promise<void> {
     const lead = await prisma.lead.findUnique({
         where: { id: leadId },
-        include: { tenant: true },
+        include: {
+            tenant: {
+                include: {
+                    teamMembers: {
+                        where: { isActive: true, receiveSMS: true },
+                    },
+                },
+            },
+        },
     })
 
     if (!lead || !lead.tenant) {
@@ -68,15 +76,38 @@ export async function startEscalation(leadId: string): Promise<void> {
         },
     })
 
-    // Send SMS to contractor
-    if (lead.tenant.twilioFromPhone) {
-        const message = `🚨 New ${lead.tenant.niche} lead!\n${lead.firstName} ${lead.lastName || ''}\n📞 ${lead.phone}\n\nClaim now: ${claimUrl}\n\n⏱️ ${ttl}s until AI takes over`
+    // Prepare SMS message
+    const contractorType = lead.tenant.contractorType || lead.tenant.niche
+    const timeoutDisplay = ttl >= 60 ? `${Math.floor(ttl / 60)}min` : `${ttl}s`
+    const message = `🚨 New ${contractorType} lead!\n${lead.firstName} ${lead.lastName || ''}\n📞 ${lead.phone}\n${lead.city ? `📍 ${lead.city}` : ''}\n\nClaim now: ${claimUrl}\n\n⏱️ ${timeoutDisplay} until AI takes over`
 
-        await sendSMS({
-            to: lead.tenant.twilioFromPhone, // TODO: Use contractor's personal phone
-            from: lead.tenant.twilioFromPhone,
-            body: message,
-        })
+    // Send SMS to all active team members
+    if (lead.tenant.twilioFromPhone) {
+        const teamMembers = lead.tenant.teamMembers || []
+
+        if (teamMembers.length > 0) {
+            // Send to each team member
+            await Promise.all(
+                teamMembers.map((member: { phone: string }) =>
+                    sendSMS({
+                        to: member.phone,
+                        from: lead.tenant!.twilioFromPhone!,
+                        body: message,
+                    })
+                )
+            )
+
+            console.log(`[Escalation] Sent claim SMS to ${teamMembers.length} team members`)
+        } else {
+            // Fallback: send to tenant's phone if no team members
+            await sendSMS({
+                to: lead.tenant.twilioFromPhone,
+                from: lead.tenant.twilioFromPhone,
+                body: message,
+            })
+
+            console.log(`[Escalation] Sent claim SMS to tenant phone (no team members)`)
+        }
 
         // Log SMS sent event
         await prisma.event.create({
@@ -84,7 +115,11 @@ export async function startEscalation(leadId: string): Promise<void> {
                 tenantId: lead.tenantId,
                 leadId: leadId,
                 type: EventType.SMS_SENT,
-                payload: { claimUrl, ttl },
+                payload: {
+                    claimUrl,
+                    ttl,
+                    recipientCount: teamMembers.length || 1,
+                },
             },
         })
     }
