@@ -27,9 +27,9 @@ env:
   
   # Retell AI (secrets stored in Secret Manager)
   - variable: RETELL_API_KEY
-    secret: RETELL_API_KEY
+    secret: retell-api-key
   - variable: RETELL_AGENT_ID
-    secret: RETELL_AGENT_ID
+    secret: retell-agent-id
   
   # Redis (secrets stored in Secret Manager)
   - variable: REDIS_URL
@@ -39,7 +39,7 @@ env:
   - variable: CLAIM_SECRET
     secret: claim-secret
   - variable: CRON_SECRET
-    secret: CRON_SECRET
+    secret: cron-secret
   
   # App URL
   - variable: NEXT_PUBLIC_APP_URL
