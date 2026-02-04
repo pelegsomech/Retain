@@ -17,7 +17,10 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        console.log('[Webhook] Retell event received:', payload.call_status)
+        console.log('[Webhook] Retell event received:', payload.call_status, {
+            hasRecording: !!payload.recording_url,
+            hasTranscript: !!payload.transcript,
+        })
 
         // Only process completed calls
         if (payload.call_status === 'ended' || payload.call_status === 'completed') {
@@ -26,6 +29,7 @@ export async function POST(req: NextRequest) {
                 call_status: payload.call_status,
                 duration_seconds: payload.duration_ms ? Math.round(payload.duration_ms / 1000) : undefined,
                 transcript: payload.transcript,
+                recording_url: payload.recording_url,
                 call_analysis: payload.call_analysis,
             })
         }

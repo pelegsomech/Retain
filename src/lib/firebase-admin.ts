@@ -1,5 +1,6 @@
 import { initializeApp, getApps, cert, type ServiceAccount } from 'firebase-admin/app'
 import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore'
+import { getStorage } from 'firebase-admin/storage'
 
 // Initialize Firebase Admin SDK
 function initFirebaseAdmin() {
@@ -18,16 +19,19 @@ function initFirebaseAdmin() {
         return initializeApp({
             credential: cert(serviceAccount),
             projectId: serviceAccount.projectId || process.env.FIREBASE_PROJECT_ID,
+            storageBucket: `${serviceAccount.projectId || process.env.FIREBASE_PROJECT_ID}.appspot.com`,
         })
     } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
         // Local development with service account file
         return initializeApp({
             projectId: process.env.FIREBASE_PROJECT_ID || 'retaincrm-ab8ab',
+            storageBucket: `${process.env.FIREBASE_PROJECT_ID || 'retaincrm-ab8ab'}.appspot.com`,
         })
     } else {
         // Firebase Hosting - automatic credentials
         return initializeApp({
             projectId: process.env.FIREBASE_PROJECT_ID || 'retaincrm-ab8ab',
+            storageBucket: `${process.env.FIREBASE_PROJECT_ID || 'retaincrm-ab8ab'}.appspot.com`,
         })
     }
 }
@@ -37,6 +41,9 @@ const app = initFirebaseAdmin()
 
 // Firestore instance
 export const db = getFirestore(app)
+
+// Storage instance
+export const storage = getStorage(app)
 
 // Re-export useful Firestore utilities
 export { Timestamp, FieldValue }
@@ -138,6 +145,11 @@ export interface Lead {
     aiCallId?: string
     aiCallOutcome?: string
     aiCallStartedAt?: Timestamp
+    aiCallEndedAt?: Timestamp
+    aiCallDuration?: number           // Duration in seconds
+    aiCallTranscript?: string         // Full call transcript
+    aiCallRecordingUrl?: string       // Firebase Storage URL (permanent)
+    aiCallSummary?: string            // AI-generated call summary
 
     // Source
     landerId?: string

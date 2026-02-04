@@ -47,7 +47,12 @@ export async function GET(req: NextRequest) {
                 status: data.status,
                 aiCallId: data.aiCallId,
                 aiCallStartedAt: data.aiCallStartedAt,
+                aiCallEndedAt: data.aiCallEndedAt,
+                aiCallDuration: data.aiCallDuration,
                 aiCallOutcome: data.aiCallOutcome,
+                aiCallTranscript: data.aiCallTranscript,
+                aiCallRecordingUrl: data.aiCallRecordingUrl,
+                aiCallSummary: data.aiCallSummary,
                 createdAt: data.createdAt,
             }
         })

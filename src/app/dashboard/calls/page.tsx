@@ -23,7 +23,10 @@ import {
     Play,
     FileText,
     TrendingUp,
-    Timer
+    Timer,
+    Download,
+    Volume2,
+    Mic
 } from "lucide-react";
 
 interface Call {
@@ -38,6 +41,8 @@ interface Call {
     aiCallDuration: number | null;
     aiCallOutcome: string | null;
     aiCallTranscript: string | null;
+    aiCallRecordingUrl: string | null;
+    aiCallSummary: string | null;
     createdAt: string;
 }
 
@@ -264,11 +269,12 @@ export default function CallsPage() {
                                             {call.aiCallStartedAt && formatDateTime(call.aiCallStartedAt)}
                                         </div>
 
-                                        {/* Transcript indicator */}
-                                        {call.aiCallTranscript && (
+                                        {/* View button with content indicators */}
+                                        {(call.aiCallTranscript || call.aiCallRecordingUrl) && (
                                             <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedCall(call); }}>
-                                                <FileText className="h-4 w-4 mr-1" />
-                                                Transcript
+                                                {call.aiCallRecordingUrl && <Volume2 className="h-4 w-4 mr-1" />}
+                                                {call.aiCallTranscript && <FileText className="h-4 w-4 mr-1" />}
+                                                View
                                             </Button>
                                         )}
                                     </div>
@@ -303,6 +309,7 @@ export default function CallsPage() {
                     </DialogHeader>
 
                     <div className="space-y-4 mt-4">
+                        {/* Contact Info */}
                         <div>
                             <h4 className="font-medium mb-2">Contact Info</h4>
                             <div className="text-sm text-muted-foreground">
@@ -311,18 +318,73 @@ export default function CallsPage() {
                             </div>
                         </div>
 
+                        {/* Recording Player */}
+                        {selectedCall?.aiCallRecordingUrl && (
+                            <div>
+                                <h4 className="font-medium mb-2 flex items-center gap-2">
+                                    <Volume2 className="h-4 w-4" />
+                                    Call Recording
+                                </h4>
+                                <div className="bg-muted rounded-lg p-4">
+                                    <audio
+                                        controls
+                                        className="w-full"
+                                        src={selectedCall.aiCallRecordingUrl}
+                                    >
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                    <div className="mt-2 flex justify-end">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            asChild
+                                        >
+                                            <a
+                                                href={selectedCall.aiCallRecordingUrl}
+                                                download={`call-${selectedCall.id}.wav`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <Download className="h-4 w-4 mr-1" />
+                                                Download
+                                            </a>
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Call Summary */}
+                        {selectedCall?.aiCallSummary && (
+                            <div>
+                                <h4 className="font-medium mb-2 flex items-center gap-2">
+                                    <FileText className="h-4 w-4" />
+                                    Call Summary
+                                </h4>
+                                <div className="bg-muted rounded-lg p-4 text-sm">
+                                    {selectedCall.aiCallSummary}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Transcript */}
                         {selectedCall?.aiCallTranscript && (
                             <div>
-                                <h4 className="font-medium mb-2">Transcript</h4>
-                                <div className="bg-muted rounded-lg p-4 text-sm whitespace-pre-wrap max-h-96 overflow-y-auto">
+                                <h4 className="font-medium mb-2 flex items-center gap-2">
+                                    <Mic className="h-4 w-4" />
+                                    Transcript
+                                </h4>
+                                <div className="bg-muted rounded-lg p-4 text-sm whitespace-pre-wrap max-h-96 overflow-y-auto font-mono">
                                     {selectedCall.aiCallTranscript}
                                 </div>
                             </div>
                         )}
 
-                        {!selectedCall?.aiCallTranscript && (
+                        {/* No data state */}
+                        {!selectedCall?.aiCallTranscript && !selectedCall?.aiCallRecordingUrl && (
                             <div className="text-center py-8 text-muted-foreground">
-                                No transcript available for this call
+                                <Mic className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                No recording or transcript available for this call
                             </div>
                         )}
                     </div>

@@ -2,6 +2,7 @@ import {
     collections,
     Timestamp,
     logEvent,
+    storage,
     type Lead,
     type ContractorType,
     type LeadStatus,
@@ -159,6 +160,54 @@ export async function initiateRetellCall(params: RetellCallParams): Promise<Rete
 }
 
 /**
+ * Download recording from Retell and upload to Firebase Storage
+ * Retell recording URLs expire after 10 minutes, so we need to store them permanently
+ */
+async function downloadAndStoreRecording(
+    recordingUrl: string,
+    tenantId: string,
+    callId: string
+): Promise<string | null> {
+    try {
+        console.log(`[Retell] Downloading recording from: ${recordingUrl}`)
+
+        // Download the recording from Retell
+        const response = await fetch(recordingUrl)
+        if (!response.ok) {
+            console.error(`[Retell] Failed to download recording: ${response.status}`)
+            return null
+        }
+
+        const audioBuffer = await response.arrayBuffer()
+        const audioData = Buffer.from(audioBuffer)
+
+        // Upload to Firebase Storage
+        const bucket = storage.bucket()
+        const fileName = `recordings/${tenantId}/${callId}.wav`
+        const file = bucket.file(fileName)
+
+        await file.save(audioData, {
+            contentType: 'audio/wav',
+            metadata: {
+                cacheControl: 'public, max-age=31536000', // Cache for 1 year
+            },
+        })
+
+        // Make the file publicly accessible
+        await file.makePublic()
+
+        // Get the public URL
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`
+        console.log(`[Retell] Recording uploaded to: ${publicUrl}`)
+
+        return publicUrl
+    } catch (error) {
+        console.error('[Retell] Failed to download/store recording:', error)
+        return null
+    }
+}
+
+/**
  * Handle Retell.ai webhook for call completion
  */
 export async function handleRetellWebhook(payload: {
@@ -166,6 +215,7 @@ export async function handleRetellWebhook(payload: {
     call_status: string
     duration_seconds?: number
     transcript?: string
+    recording_url?: string
     call_analysis?: {
         outcome?: string
         summary?: string
@@ -195,15 +245,29 @@ export async function handleRetellWebhook(payload: {
         newStatus = 'DISQUALIFIED'
     } else if (outcome === 'callback' || outcome === 'reschedule') {
         newStatus = 'CALLBACK_SCHEDULED'
+    } else if (outcome === 'no_answer' || outcome === 'voicemail') {
+        newStatus = 'NO_ANSWER'
     }
 
-    // Update lead
+    // Download and store recording if URL provided
+    let permanentRecordingUrl: string | null = null
+    if (payload.recording_url) {
+        permanentRecordingUrl = await downloadAndStoreRecording(
+            payload.recording_url,
+            lead.tenantId,
+            payload.call_id
+        )
+    }
+
+    // Update lead with all call data
     await collections.leads.doc(lead.id).update({
         status: newStatus,
         aiCallEndedAt: Timestamp.now(),
         aiCallDuration: payload.duration_seconds || null,
         aiCallTranscript: payload.transcript || null,
+        aiCallRecordingUrl: permanentRecordingUrl || null,
         aiCallOutcome: payload.call_analysis?.outcome || null,
+        aiCallSummary: payload.call_analysis?.summary || null,
         updatedAt: Timestamp.now(),
     })
 
@@ -213,7 +277,10 @@ export async function handleRetellWebhook(payload: {
         status: payload.call_status,
         duration: payload.duration_seconds,
         outcome: payload.call_analysis?.outcome,
+        hasRecording: !!permanentRecordingUrl,
+        hasTranscript: !!payload.transcript,
     })
 
     console.log(`[Retell] Call completed: ${payload.call_id}, outcome: ${outcome}, status: ${newStatus}`)
 }
+
