@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { prisma } from '@/lib/db'
+import {
+    collections,
+    Timestamp,
+    getTenantByClerkOrgId,
+    type Tenant,
+} from '@/lib/firebase-admin'
 
 // POST /api/tenants - Create a new tenant (during onboarding)
 export async function POST(req: NextRequest) {
@@ -33,22 +38,44 @@ export async function POST(req: NextRequest) {
         // Check if slug exists and add number if needed
         let slug = baseSlug
         let counter = 1
-        while (await prisma.tenant.findUnique({ where: { slug } })) {
-            slug = `${baseSlug}-${counter}`
-            counter++
+        let slugExists = true
+
+        while (slugExists) {
+            const existing = await collections.tenants
+                .where('slug', '==', slug)
+                .limit(1)
+                .get()
+
+            if (existing.empty) {
+                slugExists = false
+            } else {
+                slug = `${baseSlug}-${counter}`
+                counter++
+            }
         }
 
-        // Create tenant
-        const tenant = await prisma.tenant.create({
-            data: {
-                clerkOrgId,
-                companyName,
-                slug,
-                niche,
-                primaryColor: primaryColor || '#2563eb',
-                twilioFromPhone: phone || null,
-            },
-        })
+        // Create tenant document
+        const tenantData: Omit<Tenant, 'id'> = {
+            clerkOrgId,
+            companyName,
+            slug,
+            niche,
+            contractorType: 'GENERAL',
+            primaryColor: primaryColor || '#2563eb',
+            accentColor: '#f59e0b',
+            twilioFromPhone: phone || undefined,
+            claimTimeoutSec: 60,
+            aiToneStyle: 'professional',
+            consentText: 'I consent to being contacted by phone, including by automated systems.',
+            isActive: true,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+        }
+
+        // Use clerkOrgId as the document ID for easy lookup
+        await collections.tenants.doc(clerkOrgId).set(tenantData)
+
+        const tenant = { id: clerkOrgId, ...tenantData }
 
         return NextResponse.json({ tenant }, { status: 201 })
     } catch (error) {
@@ -72,17 +99,7 @@ export async function GET() {
             )
         }
 
-        const tenant = await prisma.tenant.findUnique({
-            where: { clerkOrgId: orgId },
-            include: {
-                _count: {
-                    select: {
-                        leads: true,
-                        landerPages: true,
-                    },
-                },
-            },
-        })
+        const tenant = await getTenantByClerkOrgId(orgId)
 
         if (!tenant) {
             return NextResponse.json(
@@ -91,7 +108,21 @@ export async function GET() {
             )
         }
 
-        return NextResponse.json({ tenant })
+        // Get counts
+        const [leadsSnapshot, landersSnapshot] = await Promise.all([
+            collections.leads.where('tenantId', '==', tenant.id).count().get(),
+            collections.landerPages.where('tenantId', '==', tenant.id).count().get(),
+        ])
+
+        const tenantWithCounts = {
+            ...tenant,
+            _count: {
+                leads: leadsSnapshot.data().count,
+                landerPages: landersSnapshot.data().count,
+            },
+        }
+
+        return NextResponse.json({ tenant: tenantWithCounts })
     } catch (error) {
         console.error('[API] Tenant fetch failed:', error)
         return NextResponse.json(
@@ -113,9 +144,7 @@ export async function PATCH(req: NextRequest) {
             )
         }
 
-        const tenant = await prisma.tenant.findUnique({
-            where: { clerkOrgId: orgId },
-        })
+        const tenant = await getTenantByClerkOrgId(orgId)
 
         if (!tenant) {
             return NextResponse.json(
@@ -148,17 +177,21 @@ export async function PATCH(req: NextRequest) {
             'aiObjections',
         ]
 
-        const updateData: Record<string, unknown> = {}
+        const updateData: Record<string, unknown> = {
+            updatedAt: Timestamp.now(),
+        }
+
         for (const field of allowedFields) {
             if (field in body) {
                 updateData[field] = body[field]
             }
         }
 
-        const updatedTenant = await prisma.tenant.update({
-            where: { id: tenant.id },
-            data: updateData,
-        })
+        await collections.tenants.doc(tenant.id).update(updateData)
+
+        // Get updated tenant
+        const updatedDoc = await collections.tenants.doc(tenant.id).get()
+        const updatedTenant = { id: updatedDoc.id, ...updatedDoc.data() }
 
         return NextResponse.json({ tenant: updatedTenant })
     } catch (error) {

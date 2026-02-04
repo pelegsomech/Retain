@@ -1,0 +1,46 @@
+# Firebase App Hosting configuration
+# https://firebase.google.com/docs/app-hosting/configure
+
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  concurrency: 80
+
+env:
+  # Firebase
+  - variable: FIREBASE_PROJECT_ID
+    value: retaincrm-ab8ab
+  
+  # Clerk Auth (secrets stored in Secret Manager)
+  - variable: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+    secret: clerk-publishable-key
+  - variable: CLERK_SECRET_KEY
+    secret: clerk-secret-key
+  
+  # Twilio (secrets stored in Secret Manager)
+  - variable: TWILIO_ACCOUNT_SID
+    secret: twilio-account-sid
+  - variable: TWILIO_AUTH_TOKEN
+    secret: twilio-auth-token
+  - variable: TWILIO_FROM_PHONE
+    secret: twilio-from-phone
+  
+  # Retell AI (secrets stored in Secret Manager)
+  - variable: RETELL_API_KEY
+    secret: retell-api-key
+  - variable: RETELL_AGENT_ID
+    secret: retell-agent-id
+  
+  # Redis (secrets stored in Secret Manager)
+  - variable: REDIS_URL
+    secret: redis-url
+  
+  # Security (secrets stored in Secret Manager)
+  - variable: CLAIM_SECRET
+    secret: claim-secret
+  - variable: CRON_SECRET
+    secret: cron-secret
+  
+  # App URL
+  - variable: NEXT_PUBLIC_APP_URL
+    value: https://retain-backend--retaincrm-ab8ab.us-central1.hosted.app

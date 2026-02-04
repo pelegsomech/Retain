@@ -1,0 +1,133 @@
+{
+    "indexes": [
+        {
+            "collectionGroup": "leads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "tenantId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "leads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "tenantId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "leads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "claimExpiresAt",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "leads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "tenantId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "aiCallId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "aiCallStartedAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "teamMembers",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "tenantId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "isActive",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "receiveSMS",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "teamMembers",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "tenantId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "landerPages",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "tenantId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "landerPages",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "tenantId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "slug",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "isActive",
+                    "order": "ASCENDING"
+                }
+            ]
+        }
+    ],
+    "fieldOverrides": []
+}

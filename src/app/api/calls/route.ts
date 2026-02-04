@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { prisma } from '@/lib/db'
+import {
+    collections,
+    getTenantByClerkOrgId,
+    type Lead,
+} from '@/lib/firebase-admin'
 
 // GET /api/calls - List AI calls for current tenant
 export async function GET(req: NextRequest) {
@@ -11,9 +15,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const tenant = await prisma.tenant.findUnique({
-            where: { clerkOrgId: orgId },
-        })
+        const tenant = await getTenantByClerkOrgId(orgId)
 
         if (!tenant) {
             return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
@@ -25,62 +27,76 @@ export async function GET(req: NextRequest) {
         const outcome = url.searchParams.get('outcome')
 
         // Find leads that have AI call data
-        const where = {
-            tenantId: tenant.id,
-            aiCallId: { not: null },
-            ...(outcome && { aiCallOutcome: outcome }),
+        let query = collections.leads
+            .where('tenantId', '==', tenant.id)
+            .where('aiCallId', '!=', null)
+            .orderBy('aiCallStartedAt', 'desc')
+
+        if (outcome) {
+            query = collections.leads
+                .where('tenantId', '==', tenant.id)
+                .where('aiCallId', '!=', null)
+                .where('aiCallOutcome', '==', outcome)
+                .orderBy('aiCallStartedAt', 'desc')
         }
 
-        const calls = await prisma.lead.findMany({
-            where,
-            orderBy: { aiCallStartedAt: 'desc' },
-            take: limit,
-            skip: offset,
-            select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                phone: true,
-                status: true,
-                aiCallId: true,
-                aiCallStartedAt: true,
-                aiCallEndedAt: true,
-                aiCallDuration: true,
-                aiCallOutcome: true,
-                aiCallTranscript: true,
-                createdAt: true,
-            },
+        const snapshot = await query.limit(limit).offset(offset).get()
+
+        const calls = snapshot.docs.map(doc => {
+            const data = doc.data() as Lead
+            return {
+                id: doc.id,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                phone: data.phone,
+                status: data.status,
+                aiCallId: data.aiCallId,
+                aiCallStartedAt: data.aiCallStartedAt,
+                aiCallOutcome: data.aiCallOutcome,
+                createdAt: data.createdAt,
+            }
         })
 
-        const total = await prisma.lead.count({ where })
+        // Get total count
+        const countSnapshot = await collections.leads
+            .where('tenantId', '==', tenant.id)
+            .where('aiCallId', '!=', null)
+            .count()
+            .get()
+        const total = countSnapshot.data().count
 
-        // Calculate aggregate stats
-        const stats = await prisma.lead.aggregate({
-            where: {
-                tenantId: tenant.id,
-                aiCallId: { not: null },
-            },
-            _avg: { aiCallDuration: true },
-            _count: true,
+        // Calculate aggregate stats - get all AI calls for stats
+        const allCallsSnapshot = await collections.leads
+            .where('tenantId', '==', tenant.id)
+            .where('aiCallId', '!=', null)
+            .get()
+
+        let totalDuration = 0
+        let durationCount = 0
+        let bookedCount = 0
+
+        allCallsSnapshot.docs.forEach(doc => {
+            const data = doc.data()
+            if (data.aiCallDuration) {
+                totalDuration += data.aiCallDuration
+                durationCount++
+            }
+            if (data.aiCallOutcome === 'booked' || data.aiCallOutcome === 'appointment_scheduled') {
+                bookedCount++
+            }
         })
 
-        const bookedCount = await prisma.lead.count({
-            where: {
-                tenantId: tenant.id,
-                aiCallId: { not: null },
-                aiCallOutcome: { in: ['booked', 'appointment_scheduled'] },
-            },
-        })
+        const totalCalls = allCallsSnapshot.size
 
         return NextResponse.json({
             calls,
             total,
             stats: {
-                totalCalls: stats._count,
-                avgDuration: Math.round(stats._avg.aiCallDuration || 0),
+                totalCalls,
+                avgDuration: durationCount > 0 ? Math.round(totalDuration / durationCount) : 0,
                 bookedCount,
-                bookingRate: stats._count > 0
-                    ? Math.round((bookedCount / stats._count) * 100)
+                bookingRate: totalCalls > 0
+                    ? Math.round((bookedCount / totalCalls) * 100)
                     : 0,
             },
         })

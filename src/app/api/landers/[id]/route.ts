@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { prisma } from '@/lib/db'
+import {
+    collections,
+    Timestamp,
+    getTenantByClerkOrgId,
+    type LanderPage,
+} from '@/lib/firebase-admin'
 import { z } from 'zod'
 
 const updateLanderSchema = z.object({
@@ -35,27 +40,30 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const tenant = await prisma.tenant.findUnique({
-            where: { clerkOrgId: orgId },
-        })
+        const tenant = await getTenantByClerkOrgId(orgId)
 
         if (!tenant) {
             return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
         }
 
-        const lander = await prisma.landerPage.findFirst({
-            where: { id, tenantId: tenant.id },
-        })
+        const landerDoc = await collections.landerPages.doc(id).get()
 
-        if (!lander) {
+        if (!landerDoc.exists) {
             return NextResponse.json({ error: 'Landing page not found' }, { status: 404 })
         }
 
-        const leadCount = await prisma.lead.count({
-            where: { landingPageId: lander.id },
-        })
+        const lander = { id: landerDoc.id, ...landerDoc.data() } as LanderPage
 
-        return NextResponse.json({ lander: { ...lander, leadCount } })
+        if (lander.tenantId !== tenant.id) {
+            return NextResponse.json({ error: 'Landing page not found' }, { status: 404 })
+        }
+
+        const countSnapshot = await collections.leads
+            .where('landerId', '==', lander.id)
+            .count()
+            .get()
+
+        return NextResponse.json({ lander: { ...lander, leadCount: countSnapshot.data().count } })
     } catch (error) {
         console.error('[API] Lander fetch failed:', error)
         return NextResponse.json({ error: 'Failed to fetch lander' }, { status: 500 })
@@ -72,19 +80,20 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const tenant = await prisma.tenant.findUnique({
-            where: { clerkOrgId: orgId },
-        })
+        const tenant = await getTenantByClerkOrgId(orgId)
 
         if (!tenant) {
             return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
         }
 
-        const existing = await prisma.landerPage.findFirst({
-            where: { id, tenantId: tenant.id },
-        })
+        const existingDoc = await collections.landerPages.doc(id).get()
 
-        if (!existing) {
+        if (!existingDoc.exists) {
+            return NextResponse.json({ error: 'Landing page not found' }, { status: 404 })
+        }
+
+        const existing = existingDoc.data() as LanderPage
+        if (existing.tenantId !== tenant.id) {
             return NextResponse.json({ error: 'Landing page not found' }, { status: 404 })
         }
 
@@ -98,10 +107,15 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             )
         }
 
-        const lander = await prisma.landerPage.update({
-            where: { id },
-            data: parsed.data,
-        })
+        const updateData = {
+            ...parsed.data,
+            updatedAt: Timestamp.now(),
+        }
+
+        await collections.landerPages.doc(id).update(updateData)
+
+        const updatedDoc = await collections.landerPages.doc(id).get()
+        const lander = { id: updatedDoc.id, ...updatedDoc.data() }
 
         return NextResponse.json({ lander })
     } catch (error) {
@@ -120,25 +134,24 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const tenant = await prisma.tenant.findUnique({
-            where: { clerkOrgId: orgId },
-        })
+        const tenant = await getTenantByClerkOrgId(orgId)
 
         if (!tenant) {
             return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
         }
 
-        const existing = await prisma.landerPage.findFirst({
-            where: { id, tenantId: tenant.id },
-        })
+        const existingDoc = await collections.landerPages.doc(id).get()
 
-        if (!existing) {
+        if (!existingDoc.exists) {
             return NextResponse.json({ error: 'Landing page not found' }, { status: 404 })
         }
 
-        await prisma.landerPage.delete({
-            where: { id },
-        })
+        const existing = existingDoc.data() as LanderPage
+        if (existing.tenantId !== tenant.id) {
+            return NextResponse.json({ error: 'Landing page not found' }, { status: 404 })
+        }
+
+        await collections.landerPages.doc(id).delete()
 
         return NextResponse.json({ success: true })
     } catch (error) {

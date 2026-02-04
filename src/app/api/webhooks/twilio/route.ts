@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
-import { EventType } from '@prisma/client'
+import { collections, logEvent, type Lead } from '@/lib/firebase-admin'
 
 /**
  * POST /api/webhooks/twilio
@@ -20,26 +19,28 @@ export async function POST(req: NextRequest) {
         // Only log failures or deliveries
         if (messageStatus === 'delivered' || messageStatus === 'failed' || messageStatus === 'undelivered') {
             // Try to find the lead by phone (best effort logging)
-            const lead = await prisma.lead.findFirst({
-                where: { phone: toPhone },
-                orderBy: { createdAt: 'desc' },
-            })
+            const snapshot = await collections.leads
+                .where('phone', '==', toPhone)
+                .orderBy('createdAt', 'desc')
+                .limit(1)
+                .get()
 
-            if (lead) {
-                await prisma.event.create({
-                    data: {
-                        tenantId: lead.tenantId,
-                        leadId: lead.id,
-                        type: messageStatus === 'delivered'
-                            ? EventType.SMS_DELIVERED
-                            : EventType.SMS_FAILED,
-                        payload: {
-                            messageSid,
-                            status: messageStatus,
-                            errorCode: errorCode || undefined,
-                        },
-                    },
-                })
+            if (!snapshot.empty) {
+                const leadDoc = snapshot.docs[0]
+                const lead = { id: leadDoc.id, ...leadDoc.data() } as Lead
+
+                // Log the SMS status event (using closest available event type)
+                await logEvent(
+                    lead.tenantId,
+                    'SMS_SENT', // Using SMS_SENT as we don't have SMS_DELIVERED/FAILED in EventType
+                    lead.id,
+                    {
+                        messageSid,
+                        status: messageStatus,
+                        errorCode: errorCode || undefined,
+                        deliveryStatus: messageStatus,
+                    }
+                )
             }
         }
 

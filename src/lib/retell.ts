@@ -1,5 +1,11 @@
-import { prisma } from '@/lib/db'
-import { EventType, LeadStatus, ContractorType } from '@prisma/client'
+import {
+    collections,
+    Timestamp,
+    logEvent,
+    type Lead,
+    type ContractorType,
+    type LeadStatus,
+} from '@/lib/firebase-admin'
 
 // Retell.ai API configuration
 const RETELL_API_KEY = process.env.RETELL_API_KEY
@@ -67,12 +73,10 @@ export async function initiateRetellCall(params: RetellCallParams): Promise<Rete
     if (!RETELL_API_KEY || !RETELL_AGENT_ID) {
         console.warn('[Retell] Not configured, skipping call')
         // Update lead with mock AI call status for demo
-        await prisma.lead.update({
-            where: { id: params.leadId },
-            data: {
-                aiCallId: `mock-call-${Date.now()}`,
-                aiCallStartedAt: new Date(),
-            },
+        await collections.leads.doc(params.leadId).update({
+            aiCallId: `mock-call-${Date.now()}`,
+            aiCallStartedAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
         })
         return null
     }
@@ -135,23 +139,14 @@ export async function initiateRetellCall(params: RetellCallParams): Promise<Rete
         const data = await response.json() as RetellCallResponse
 
         // Update lead with call info
-        await prisma.lead.update({
-            where: { id: params.leadId },
-            data: {
-                aiCallId: data.call_id,
-                aiCallStartedAt: new Date(),
-            },
+        await collections.leads.doc(params.leadId).update({
+            aiCallId: data.call_id,
+            aiCallStartedAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
         })
 
         // Log call initiated event
-        await prisma.event.create({
-            data: {
-                tenantId: params.tenantId,
-                leadId: params.leadId,
-                type: EventType.AI_CALL_STARTED,
-                payload: { callId: data.call_id },
-            },
-        })
+        await logEvent(params.tenantId, 'AI_CALL_STARTED', params.leadId, { callId: data.call_id })
 
         console.log(`[Retell] Call initiated: ${data.call_id}`)
         return data
@@ -175,52 +170,47 @@ export async function handleRetellWebhook(payload: {
     }
 }): Promise<void> {
     // Find lead by call ID
-    const lead = await prisma.lead.findFirst({
-        where: { aiCallId: payload.call_id },
-    })
+    const snapshot = await collections.leads
+        .where('aiCallId', '==', payload.call_id)
+        .limit(1)
+        .get()
 
-    if (!lead) {
+    if (snapshot.empty) {
         console.warn(`[Retell] Lead not found for call: ${payload.call_id}`)
         return
     }
 
+    const leadDoc = snapshot.docs[0]
+    const lead = { id: leadDoc.id, ...leadDoc.data() } as Lead
+
     // Determine call outcome and new status
-    let newStatus: typeof LeadStatus[keyof typeof LeadStatus] = LeadStatus.AI_QUALIFIED
+    let newStatus: LeadStatus = 'AI_QUALIFIED'
     const outcome = payload.call_analysis?.outcome?.toLowerCase()
 
     if (outcome === 'booked' || outcome === 'appointment_scheduled') {
-        newStatus = LeadStatus.BOOKED
+        newStatus = 'BOOKED'
     } else if (outcome === 'not_interested' || outcome === 'declined') {
-        newStatus = LeadStatus.DISQUALIFIED
+        newStatus = 'DISQUALIFIED'
     } else if (outcome === 'callback' || outcome === 'reschedule') {
-        newStatus = LeadStatus.CALLBACK_SCHEDULED
+        newStatus = 'CALLBACK_SCHEDULED'
     }
 
     // Update lead
-    await prisma.lead.update({
-        where: { id: lead.id },
-        data: {
-            status: newStatus,
-            aiCallEndedAt: new Date(),
-            aiCallDuration: payload.duration_seconds,
-            aiCallTranscript: payload.transcript,
-            aiCallOutcome: payload.call_analysis?.outcome,
-        },
+    await collections.leads.doc(lead.id).update({
+        status: newStatus,
+        aiCallEndedAt: Timestamp.now(),
+        aiCallDuration: payload.duration_seconds || null,
+        aiCallTranscript: payload.transcript || null,
+        aiCallOutcome: payload.call_analysis?.outcome || null,
+        updatedAt: Timestamp.now(),
     })
 
     // Log call completion event
-    await prisma.event.create({
-        data: {
-            tenantId: lead.tenantId,
-            leadId: lead.id,
-            type: EventType.AI_CALL_COMPLETED,
-            payload: {
-                callId: payload.call_id,
-                status: payload.call_status,
-                duration: payload.duration_seconds,
-                outcome: payload.call_analysis?.outcome,
-            },
-        },
+    await logEvent(lead.tenantId, 'AI_CALL_ENDED', lead.id, {
+        callId: payload.call_id,
+        status: payload.call_status,
+        duration: payload.duration_seconds,
+        outcome: payload.call_analysis?.outcome,
     })
 
     console.log(`[Retell] Call completed: ${payload.call_id}, outcome: ${outcome}, status: ${newStatus}`)

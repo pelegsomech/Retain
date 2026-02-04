@@ -1,45 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { collections, Timestamp } from '@/lib/firebase-admin'
 import { handleClaimTimeout } from '@/lib/escalation'
-import { LeadStatus } from '@prisma/client'
 
-// Cron secret for Vercel Cron Jobs
+// Cron secret for Firebase Cloud Scheduler / Vercel Cron Jobs
 const CRON_SECRET = process.env.CRON_SECRET
 
 /**
  * GET /api/cron/check-timeouts
  * Checks for claim timeouts and triggers AI escalation
- * Called by Vercel Cron every minute
+ * Called by Cloud Scheduler or Vercel Cron every minute
  */
 export async function GET(req: NextRequest) {
-    // Verify cron secret (Vercel sends this header)
+    // Verify cron secret (Vercel/Cloud Scheduler sends this header)
     const authHeader = req.headers.get('authorization')
     if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     try {
-        // Find leads that are still SMS_SENT but past their claim expiry
-        const expiredLeads = await prisma.lead.findMany({
-            where: {
-                status: LeadStatus.SMS_SENT,
-                claimExpiresAt: {
-                    lt: new Date(),
-                },
-            },
-            select: {
-                id: true,
-                firstName: true,
-                phone: true,
-                claimExpiresAt: true,
-            },
-        })
+        const now = Timestamp.now()
 
-        console.log(`[Cron] Found ${expiredLeads.length} expired claims`)
+        // Find leads that are still SMS_SENT but past their claim expiry
+        const expiredSnapshot = await collections.leads
+            .where('status', '==', 'SMS_SENT')
+            .where('claimExpiresAt', '<', now)
+            .get()
+
+        console.log(`[Cron] Found ${expiredSnapshot.size} expired claims`)
 
         // Process each expired lead
+        const expiredLeads = expiredSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+        }))
+
         const results = await Promise.allSettled(
-            expiredLeads.map(async (lead: { id: string }) => {
+            expiredLeads.map(async (lead) => {
                 console.log(`[Cron] Processing timeout for lead ${lead.id}`)
                 await handleClaimTimeout(lead.id)
                 return lead.id

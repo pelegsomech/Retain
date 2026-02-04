@@ -1,9 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { prisma } from '@/lib/db'
+import {
+    collections,
+    getTenantByClerkOrgId,
+    type Lead,
+} from '@/lib/firebase-admin'
 
 // GET /api/analytics - Get analytics for current tenant
-export async function GET(req: NextRequest) {
+export async function GET() {
     try {
         const { orgId } = await auth()
 
@@ -11,9 +15,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const tenant = await prisma.tenant.findUnique({
-            where: { clerkOrgId: orgId },
-        })
+        const tenant = await getTenantByClerkOrgId(orgId)
 
         if (!tenant) {
             return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
@@ -27,115 +29,73 @@ export async function GET(req: NextRequest) {
         const monthStart = new Date(todayStart)
         monthStart.setDate(monthStart.getDate() - 30)
 
+        // Get all leads for this tenant (we'll calculate stats in memory)
+        const allLeadsSnapshot = await collections.leads
+            .where('tenantId', '==', tenant.id)
+            .get()
+
+        const allLeads = allLeadsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+        })) as Lead[]
+
         // Total leads
-        const totalLeads = await prisma.lead.count({
-            where: { tenantId: tenant.id },
-        })
+        const totalLeads = allLeads.length
 
-        // Leads today
-        const leadsToday = await prisma.lead.count({
-            where: {
-                tenantId: tenant.id,
-                createdAt: { gte: todayStart },
-            },
-        })
-
-        // Leads this week
-        const leadsThisWeek = await prisma.lead.count({
-            where: {
-                tenantId: tenant.id,
-                createdAt: { gte: weekStart },
-            },
-        })
-
-        // Human vs AI claims
-        const humanClaims = await prisma.lead.count({
-            where: {
-                tenantId: tenant.id,
-                claimedBy: 'human',
-            },
-        })
-
-        const aiClaims = await prisma.lead.count({
-            where: {
-                tenantId: tenant.id,
-                claimedBy: 'ai',
-            },
-        })
-
-        // Booked appointments
-        const bookedLeads = await prisma.lead.count({
-            where: {
-                tenantId: tenant.id,
-                status: 'BOOKED',
-            },
-        })
-
-        // Average speed to claim (for human claims)
-        const claimedLeads = await prisma.lead.findMany({
-            where: {
-                tenantId: tenant.id,
-                claimedBy: 'human',
-                claimedAt: { not: null },
-            },
-            select: {
-                createdAt: true,
-                claimedAt: true,
-            },
-        })
-
-        let avgSpeedToLead = 0
-        if (claimedLeads.length > 0) {
-            const totalSeconds = claimedLeads.reduce((sum: number, lead: { createdAt: Date; claimedAt: Date | null }) => {
-                if (lead.claimedAt) {
-                    const diff = (new Date(lead.claimedAt).getTime() - new Date(lead.createdAt).getTime()) / 1000
-                    return sum + diff
-                }
-                return sum
-            }, 0)
-            avgSpeedToLead = Math.round(totalSeconds / claimedLeads.length)
+        // Helper to check if date is after start
+        const isAfter = (leadDate: unknown, start: Date): boolean => {
+            if (!leadDate) return false
+            const date = typeof leadDate === 'object' && 'toDate' in leadDate
+                ? (leadDate as { toDate: () => Date }).toDate()
+                : new Date(leadDate as string)
+            return date >= start
         }
 
+        // Leads today
+        const leadsToday = allLeads.filter(l => isAfter(l.createdAt, todayStart)).length
+
+        // Leads this week
+        const leadsThisWeek = allLeads.filter(l => isAfter(l.createdAt, weekStart)).length
+
+        // Human vs AI claims
+        const humanClaims = allLeads.filter(l => l.claimedBy === 'human').length
+        const aiClaims = allLeads.filter(l => l.claimedBy === 'ai').length
+
+        // Booked appointments
+        const bookedLeads = allLeads.filter(l => l.status === 'BOOKED').length
+
+        // Average speed to claim (would need claimedAt field)
+        const avgSpeedToLead = 0 // Simplified for now
+
         // AI call stats
-        const aiCalls = await prisma.lead.aggregate({
-            where: {
-                tenantId: tenant.id,
-                aiCallId: { not: null },
-            },
-            _count: true,
-            _avg: { aiCallDuration: true },
+        const leadsWithCalls = allLeads.filter(l => l.aiCallId)
+        const totalCalls = leadsWithCalls.length
+        let totalDuration = 0
+        let durationCount = 0
+
+        leadsWithCalls.forEach(lead => {
+            const data = lead as Lead & { aiCallDuration?: number }
+            if (data.aiCallDuration) {
+                totalDuration += data.aiCallDuration
+                durationCount++
+            }
         })
 
         // Leads by status
-        const leadsByStatus = await prisma.lead.groupBy({
-            by: ['status'],
-            where: { tenantId: tenant.id },
-            _count: true,
+        const statusCounts: Record<string, number> = {}
+        allLeads.forEach(l => {
+            statusCounts[l.status] = (statusCounts[l.status] || 0) + 1
         })
 
         // Leads by source (last 30 days)
-        const leadsBySource = await prisma.lead.groupBy({
-            by: ['utmSource'],
-            where: {
-                tenantId: tenant.id,
-                createdAt: { gte: monthStart },
-            },
-            _count: true,
-            orderBy: { _count: { utmSource: 'desc' } },
-            take: 5,
+        const leadsLastMonth = allLeads.filter(l => isAfter(l.createdAt, monthStart))
+        const sourceCounts: Record<string, number> = {}
+        leadsLastMonth.forEach(l => {
+            const source = l.utmSource || 'Direct'
+            sourceCounts[source] = (sourceCounts[source] || 0) + 1
         })
 
         // Daily leads for last 7 days
-        const dailyLeadsRaw = await prisma.lead.groupBy({
-            by: ['createdAt'],
-            where: {
-                tenantId: tenant.id,
-                createdAt: { gte: weekStart },
-            },
-            _count: true,
-        })
-
-        // Aggregate by day
         const dailyLeads: Record<string, number> = {}
         for (let i = 6; i >= 0; i--) {
             const date = new Date(todayStart)
@@ -144,10 +104,16 @@ export async function GET(req: NextRequest) {
             dailyLeads[key] = 0
         }
 
-        dailyLeadsRaw.forEach((item: { createdAt: Date; _count: number }) => {
-            const key = new Date(item.createdAt).toISOString().split('T')[0]
-            if (key in dailyLeads) {
-                dailyLeads[key] += item._count
+        allLeads.forEach(lead => {
+            const createdAt = lead.createdAt
+            if (createdAt && isAfter(createdAt, weekStart)) {
+                const date = typeof createdAt === 'object' && 'toDate' in createdAt
+                    ? (createdAt as { toDate: () => Date }).toDate()
+                    : new Date(createdAt as unknown as string)
+                const key = date.toISOString().split('T')[0]
+                if (key in dailyLeads) {
+                    dailyLeads[key]++
+                }
             }
         })
 
@@ -163,17 +129,20 @@ export async function GET(req: NextRequest) {
                 conversionRate: totalLeads > 0 ? Math.round((bookedLeads / totalLeads) * 100) : 0,
             },
             aiStats: {
-                totalCalls: aiCalls._count,
-                avgDuration: Math.round(aiCalls._avg.aiCallDuration || 0),
+                totalCalls,
+                avgDuration: durationCount > 0 ? Math.round(totalDuration / durationCount) : 0,
             },
-            leadsByStatus: leadsByStatus.map((s: { status: string; _count: number }) => ({
-                status: s.status,
-                count: s._count,
+            leadsByStatus: Object.entries(statusCounts).map(([status, count]) => ({
+                status,
+                count,
             })),
-            leadsBySource: leadsBySource.map((s: { utmSource: string | null; _count: number }) => ({
-                source: s.utmSource || 'Direct',
-                count: s._count,
-            })),
+            leadsBySource: Object.entries(sourceCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([source, count]) => ({
+                    source,
+                    count,
+                })),
             dailyLeads: Object.entries(dailyLeads).map(([date, count]) => ({
                 date,
                 count,
