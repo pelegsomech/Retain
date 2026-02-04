@@ -3,7 +3,9 @@ import Twilio from 'twilio'
 const accountSid = process.env.TWILIO_ACCOUNT_SID
 const authToken = process.env.TWILIO_AUTH_TOKEN
 
-const client = accountSid && authToken ? Twilio(accountSid, authToken) : null
+// Only create client if accountSid starts with 'AC' (Twilio validation requirement)
+// This prevents build-time errors when using placeholder/empty secrets
+const client = accountSid?.startsWith('AC') && authToken ? Twilio(accountSid, authToken) : null
 
 interface SendSMSParams {
     to: string

@@ -2,12 +2,14 @@ import Redis from 'ioredis'
 
 let redis: Redis | null = null
 
-function getRedis(): Redis {
+function getRedis(): Redis | null {
     if (redis) return redis
 
     const url = process.env.REDIS_URL
-    if (!url) {
-        throw new Error('REDIS_URL is not defined')
+    // Skip if URL is missing or is a placeholder value
+    if (!url || url === 'placeholder' || !url.startsWith('redis')) {
+        console.warn('[Redis] Not configured, in-memory fallback will be used')
+        return null
     }
 
     redis = new Redis(url, {
@@ -25,15 +27,24 @@ function getRedis(): Redis {
 export const CLAIM_PREFIX = 'claim:'
 
 export async function setClaimToken(leadId: string, token: string, ttlSeconds: number = 60) {
-    await getRedis().set(`${CLAIM_PREFIX}${leadId}`, token, 'EX', ttlSeconds)
+    const client = getRedis()
+    if (!client) {
+        console.warn('[Redis] Skipping setClaimToken - not configured')
+        return
+    }
+    await client.set(`${CLAIM_PREFIX}${leadId}`, token, 'EX', ttlSeconds)
 }
 
 export async function getClaimToken(leadId: string): Promise<string | null> {
-    return getRedis().get(`${CLAIM_PREFIX}${leadId}`)
+    const client = getRedis()
+    if (!client) return null
+    return client.get(`${CLAIM_PREFIX}${leadId}`)
 }
 
 export async function deleteClaimToken(leadId: string) {
-    await getRedis().del(`${CLAIM_PREFIX}${leadId}`)
+    const client = getRedis()
+    if (!client) return
+    await client.del(`${CLAIM_PREFIX}${leadId}`)
 }
 
 export { getRedis as redis }
