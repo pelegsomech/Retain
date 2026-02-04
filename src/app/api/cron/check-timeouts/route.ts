@@ -3,6 +3,7 @@ import { collections, Timestamp } from '@/lib/firebase-admin'
 import { handleClaimTimeout } from '@/lib/escalation'
 
 // Cron secret for Firebase Cloud Scheduler / Vercel Cron Jobs
+// v2: Updated secret handling
 const CRON_SECRET = process.env.CRON_SECRET
 
 /**
@@ -13,6 +14,15 @@ const CRON_SECRET = process.env.CRON_SECRET
 export async function GET(req: NextRequest) {
     // Verify cron secret (Vercel/Cloud Scheduler sends this header)
     const authHeader = req.headers.get('authorization')
+
+    // Debug logging (remove in production)
+    console.log('[Cron] Auth check:', {
+        hasSecret: !!CRON_SECRET,
+        secretLength: CRON_SECRET?.length || 0,
+        hasAuthHeader: !!authHeader,
+        matches: authHeader === `Bearer ${CRON_SECRET}`,
+    })
+
     if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
