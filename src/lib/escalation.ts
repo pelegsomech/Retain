@@ -173,18 +173,40 @@ export async function handleClaimTimeout(leadId: string): Promise<void> {
         },
     })
 
-    // Trigger Retell.ai call
+    // Parse service list from tenant config
+    const serviceList = lead.tenant?.aiServiceList
+        ? lead.tenant.aiServiceList.split(',').map((s: string) => s.trim())
+        : []
+
+    // Build calendar link
+    const calendarLink = lead.tenant?.calendarUrl || (
+        lead.tenant?.calcomApiKey
+            ? `https://cal.com/${lead.tenant.companyName?.toLowerCase().replace(/\s+/g, '-')}/consultation`
+            : undefined
+    )
+
+    // Trigger Retell.ai call with rich contractor context
     try {
         await initiateRetellCall({
             leadId: lead.id,
             phone: lead.phone,
             tenantId: lead.tenantId,
             tenantName: lead.tenant?.companyName || 'Our Company',
-            tenantNiche: lead.tenant?.niche || 'service',
+
+            // Contractor context
+            contractorType: lead.tenant?.contractorType || 'GENERAL',
+            serviceList: serviceList,
+            aiGreeting: lead.tenant?.aiGreeting || undefined,
+            toneStyle: lead.tenant?.aiToneStyle || 'professional',
+
+            // Lead context
             leadFirstName: lead.firstName,
-            calendarLink: lead.tenant?.calcomApiKey ?
-                `https://cal.com/${lead.tenant.companyName?.toLowerCase().replace(/\s+/g, '-')}/consultation` :
-                undefined,
+            leadLastName: lead.lastName || undefined,
+            leadAddress: lead.address || undefined,
+            leadCity: lead.city || undefined,
+
+            // Booking
+            calendarLink: calendarLink,
         })
     } catch (error) {
         console.error(`[Escalation] Failed to initiate AI call for lead ${leadId}:`, error)

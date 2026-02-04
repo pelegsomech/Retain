@@ -7,6 +7,28 @@ datasource db {
 }
 
 // ============================================
+// CONTRACTOR TYPES
+// ============================================
+enum ContractorType {
+  GENERAL
+  ROOFING
+  HVAC
+  HARDSCAPING
+  ADU
+  KITCHEN_BATH
+  SIDING
+  DECKING
+  PLUMBING
+  ELECTRICAL
+  PAINTING
+  LANDSCAPING
+  SOLAR
+  WINDOWS_DOORS
+  FLOORING
+  REMODELING
+}
+
+// ============================================
 // TENANT: Contractor Accounts
 // ============================================
 model Tenant {
@@ -14,7 +36,10 @@ model Tenant {
   clerkOrgId      String    @unique
   companyName     String
   slug            String    @unique
-  niche           String    // roofing, decking, siding...
+  niche           String    // Legacy field for backwards compatibility
+  
+  // Contractor Type (new - structured)
+  contractorType  ContractorType @default(GENERAL)
   
   // Branding
   logoUrl         String?
@@ -28,6 +53,12 @@ model Tenant {
   
   // Retell.ai (shared agent + per-tenant metadata)
   retellAgentId   String?
+  
+  // AI Voice Configuration
+  aiGreeting      String?   // Custom opening for AI calls
+  aiServiceList   String?   // Services offered (comma-separated)
+  aiToneStyle     String    @default("professional") // casual, professional, friendly
+  aiObjections    String?   @db.Text  // Common objection responses (JSON)
   
   // Calendar Integration
   calendarProvider CalendarProvider?
@@ -47,6 +78,29 @@ model Tenant {
   leads           Lead[]
   events          Event[]
   landerPages     LanderPage[]
+  teamMembers     TeamMember[]
+}
+
+// ============================================
+// TEAM MEMBERS: Receive claim SMS
+// ============================================
+model TeamMember {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  name        String
+  phone       String   // Personal phone for claim SMS
+  email       String?
+  role        String   @default("sales") // sales, manager, owner
+  
+  receiveSMS  Boolean  @default(true)  // Opt-in for claim notifications
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([tenantId])
 }
 
 enum CalendarProvider {

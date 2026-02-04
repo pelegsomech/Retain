@@ -140,6 +140,12 @@ export async function PATCH(req: NextRequest) {
             'calcomApiKey',
             'consentText',
             'claimTimeoutSec',
+            // New AI configuration fields
+            'contractorType',
+            'aiGreeting',
+            'aiServiceList',
+            'aiToneStyle',
+            'aiObjections',
         ]
 
         const updateData: Record<string, unknown> = {}

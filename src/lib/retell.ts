@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db'
-import { EventType, LeadStatus } from '@prisma/client'
+import { EventType, LeadStatus, ContractorType } from '@prisma/client'
 
 // Retell.ai API configuration
 const RETELL_API_KEY = process.env.RETELL_API_KEY
@@ -11,8 +11,21 @@ interface RetellCallParams {
     phone: string
     tenantId: string
     tenantName: string
-    tenantNiche: string
+
+    // Contractor context (new - enhanced)
+    contractorType: ContractorType
+    serviceList: string[]        // ["roof repair", "roof replacement", "gutters"]
+    aiGreeting?: string          // Custom opening line
+    toneStyle: string            // professional, casual, friendly
+
+    // Lead context
     leadFirstName: string
+    leadLastName?: string
+    leadAddress?: string
+    leadCity?: string
+    projectNotes?: string
+
+    // Booking
     calendarLink?: string
 }
 
@@ -20,6 +33,31 @@ interface RetellCallResponse {
     call_id: string
     agent_id: string
     status: string
+}
+
+/**
+ * Convert ContractorType enum to human-readable service category
+ */
+function getServiceCategory(type: ContractorType): string {
+    const categories: Record<ContractorType, string> = {
+        GENERAL: 'general contracting',
+        ROOFING: 'roofing',
+        HVAC: 'HVAC and climate control',
+        HARDSCAPING: 'hardscaping and outdoor living',
+        ADU: 'ADU and accessory dwelling units',
+        KITCHEN_BATH: 'kitchen and bathroom remodeling',
+        SIDING: 'siding and exterior',
+        DECKING: 'decking and outdoor structures',
+        PLUMBING: 'plumbing',
+        ELECTRICAL: 'electrical',
+        PAINTING: 'painting and finishing',
+        LANDSCAPING: 'landscaping',
+        SOLAR: 'solar installation',
+        WINDOWS_DOORS: 'windows and doors',
+        FLOORING: 'flooring',
+        REMODELING: 'home remodeling',
+    }
+    return categories[type] || 'home improvement'
 }
 
 /**
@@ -39,8 +77,13 @@ export async function initiateRetellCall(params: RetellCallParams): Promise<Rete
         return null
     }
 
+    const serviceCategory = getServiceCategory(params.contractorType)
+    const serviceListStr = params.serviceList.length > 0
+        ? params.serviceList.join(', ')
+        : serviceCategory
+
     try {
-        // Create call with dynamic metadata for agent personalization
+        // Create call with rich dynamic metadata for agent personalization
         const response = await fetch(`${RETELL_API_URL}/create-phone-call`, {
             method: 'POST',
             headers: {
@@ -50,20 +93,36 @@ export async function initiateRetellCall(params: RetellCallParams): Promise<Rete
             body: JSON.stringify({
                 agent_id: RETELL_AGENT_ID,
                 to_number: params.phone,
-                // Dynamic variables injected into agent prompt
+                // Metadata for tracking and logging
                 metadata: {
                     lead_id: params.leadId,
                     tenant_id: params.tenantId,
-                    lead_name: params.leadFirstName,
-                    company_name: params.tenantName,
-                    industry: params.tenantNiche,
-                    calendar_link: params.calendarLink,
+                    contractor_type: params.contractorType,
+                    lead_name: `${params.leadFirstName} ${params.leadLastName || ''}`.trim(),
+                    lead_address: params.leadAddress,
+                    lead_city: params.leadCity,
                 },
-                // Custom greeting based on tenant
+                // Dynamic variables injected into agent prompt
                 retell_llm_dynamic_variables: {
+                    // Company context
                     company_name: params.tenantName,
+                    service_category: serviceCategory,
+                    services_offered: serviceListStr,
+                    tone_style: params.toneStyle,
+
+                    // Lead context
                     lead_name: params.leadFirstName,
-                    service_type: params.tenantNiche,
+                    lead_full_name: `${params.leadFirstName} ${params.leadLastName || ''}`.trim(),
+                    lead_address: params.leadAddress || 'not provided',
+                    lead_city: params.leadCity || 'your area',
+                    project_notes: params.projectNotes || '',
+
+                    // Custom greeting (if set)
+                    custom_greeting: params.aiGreeting || '',
+
+                    // Booking
+                    calendar_link: params.calendarLink || '',
+                    has_calendar: params.calendarLink ? 'true' : 'false',
                 },
             }),
         })
