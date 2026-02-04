@@ -17,6 +17,7 @@ interface RetellCallParams {
     phone: string
     tenantId: string
     tenantName: string
+    fromNumber: string           // Required: Outbound caller ID (Twilio phone)
 
     // Contractor context (new - enhanced)
     contractorType: ContractorType
@@ -97,6 +98,7 @@ export async function initiateRetellCall(params: RetellCallParams): Promise<Rete
             body: JSON.stringify({
                 agent_id: RETELL_AGENT_ID,
                 to_number: params.phone,
+                from_number: params.fromNumber,
                 // Metadata for tracking and logging
                 metadata: {
                     lead_id: params.leadId,

@@ -204,11 +204,18 @@ export async function handleClaimTimeout(leadId: string): Promise<void> {
 
     // Trigger Retell.ai call with rich contractor context
     try {
+        // Verify we have a from number for outbound calls
+        if (!tenant.twilioFromPhone) {
+            console.error(`[Escalation] No Twilio phone configured for tenant ${tenant.id}`)
+            return
+        }
+
         await initiateRetellCall({
             leadId: lead.id,
             phone: lead.phone,
             tenantId: lead.tenantId,
             tenantName: tenant.companyName || 'Our Company',
+            fromNumber: tenant.twilioFromPhone,  // Required for Retell API
 
             // Contractor context
             contractorType: tenant.contractorType || 'GENERAL',
