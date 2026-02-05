@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import {
     Loader2,
     Save,
@@ -17,6 +17,15 @@ import {
     AudioLines,
     ClipboardCheck,
     Settings2,
+    Hammer,
+    Home,
+    Leaf,
+    Paintbrush,
+    Snowflake,
+    Sun,
+    Droplets,
+    Zap,
+    LayoutGrid,
 } from "lucide-react"
 
 // Section components
@@ -33,15 +42,36 @@ import {
     type IndustryNiche,
     createDefaultAtomicConfig,
     INDUSTRY_PRESETS,
+    INDUSTRY_LABELS,
 } from '@/lib/atomic-config'
 
-// Tab configuration
+// Service category visual cards with icons
+const SERVICE_CATEGORIES: {
+    id: IndustryNiche
+    label: string
+    icon: React.ElementType
+    color: string
+}[] = [
+        { id: 'ROOFING', label: 'Roofing', icon: Home, color: 'bg-orange-100 text-orange-700' },
+        { id: 'HVAC', label: 'HVAC', icon: Snowflake, color: 'bg-blue-100 text-blue-700' },
+        { id: 'PLUMBING', label: 'Plumbing', icon: Droplets, color: 'bg-cyan-100 text-cyan-700' },
+        { id: 'ELECTRICAL', label: 'Electrical', icon: Zap, color: 'bg-yellow-100 text-yellow-700' },
+        { id: 'DECKING', label: 'Decking', icon: LayoutGrid, color: 'bg-amber-100 text-amber-700' },
+        { id: 'PAINTING', label: 'Painting', icon: Paintbrush, color: 'bg-purple-100 text-purple-700' },
+        { id: 'LANDSCAPING', label: 'Landscaping', icon: Leaf, color: 'bg-green-100 text-green-700' },
+        { id: 'SOLAR', label: 'Solar', icon: Sun, color: 'bg-yellow-100 text-yellow-700' },
+        { id: 'KITCHEN_BATH', label: 'Kitchen & Bath', icon: Home, color: 'bg-pink-100 text-pink-700' },
+        { id: 'WINDOWS_DOORS', label: 'Windows & Doors', icon: Home, color: 'bg-teal-100 text-teal-700' },
+        { id: 'REMODELING', label: 'Remodeling', icon: Hammer, color: 'bg-slate-100 text-slate-700' },
+        { id: 'GENERAL', label: 'Other', icon: Building2, color: 'bg-gray-100 text-gray-700' },
+    ]
+
+// Simplified tab configuration with horizontal layout
 const TABS = [
-    { id: 'business', label: 'Business', icon: Building2 },
-    { id: 'language', label: 'Language', icon: MessageSquare },
+    { id: 'service', label: 'Service Type', icon: Building2 },
+    { id: 'branding', label: 'Branding', icon: MessageSquare },
     { id: 'pricing', label: 'Pricing', icon: DollarSign },
-    { id: 'voice', label: 'Voice', icon: AudioLines },
-    { id: 'qualification', label: 'Qualification', icon: ClipboardCheck },
+    { id: 'ai', label: 'AI Voice', icon: AudioLines },
     { id: 'integrations', label: 'Integrations', icon: Settings2 },
 ] as const
 
@@ -65,7 +95,7 @@ export default function SettingsPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
     const [saveSuccess, setSaveSuccess] = useState(false)
-    const [activeTab, setActiveTab] = useState<TabId>('business')
+    const [activeTab, setActiveTab] = useState<TabId>('service')
 
     // Atomic config state
     const [atomicConfig, setAtomicConfig] = useState<AtomicConfig | null>(null)
@@ -94,7 +124,6 @@ export default function SettingsPage() {
                 if (t.atomicConfig) {
                     setAtomicConfig(t.atomicConfig)
                 } else {
-                    // Create default config from tenant data
                     const defaultConfig = createDefaultAtomicConfig(
                         t.id,
                         t.companyName,
@@ -123,7 +152,6 @@ export default function SettingsPage() {
         setAtomicConfig({
             ...atomicConfig,
             ...updates,
-            // Deep merge for nested objects
             business_identity: updates.business_identity
                 ? { ...atomicConfig.business_identity, ...updates.business_identity }
                 : atomicConfig.business_identity,
@@ -145,13 +173,11 @@ export default function SettingsPage() {
         })
     }
 
-    const handleIndustryChange = (niche: IndustryNiche) => {
+    const handleServiceCategoryChange = (niche: IndustryNiche) => {
         if (!atomicConfig) return
 
-        // Get preset for this industry
         const preset = INDUSTRY_PRESETS[niche]
 
-        // Update both business identity and linguistic map
         setAtomicConfig({
             ...atomicConfig,
             business_identity: {
@@ -161,7 +187,6 @@ export default function SettingsPage() {
             linguistic_map: { ...preset },
             qualification_checklist: {
                 ...atomicConfig.qualification_checklist,
-                // Enable insurance for roofing
                 ask_insurance_claim: niche === 'ROOFING',
             },
         })
@@ -183,9 +208,7 @@ export default function SettingsPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     atomicConfig,
-                    // Also save legacy fields
                     ...legacyIntegrations,
-                    // Sync company name
                     companyName: atomicConfig.business_identity.brand_name,
                 }),
             })
@@ -212,20 +235,42 @@ export default function SettingsPage() {
         )
     }
 
+    const currentCategory = SERVICE_CATEGORIES.find(
+        c => c.id === atomicConfig.business_identity.industry_niche
+    ) || SERVICE_CATEGORIES[SERVICE_CATEGORIES.length - 1]
+
     return (
-        <div className="flex gap-8 max-w-6xl">
-            {/* Sidebar Navigation */}
-            <div className="w-48 flex-shrink-0">
-                <div className="sticky top-8 space-y-1">
+        <div className="max-w-4xl mx-auto space-y-6 pb-24">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold">Settings</h1>
+                    <p className="text-muted-foreground text-sm">
+                        Configure your AI agent and business profile
+                    </p>
+                </div>
+                <Link
+                    href="/dashboard/settings/team"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-muted transition-colors"
+                >
+                    <Users className="h-4 w-4" />
+                    Team
+                    <ChevronRight className="h-3 w-3" />
+                </Link>
+            </div>
+
+            {/* Horizontal Tabs */}
+            <div className="border-b">
+                <nav className="flex gap-1">
                     {TABS.map(tab => {
                         const Icon = tab.icon
                         return (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-colors ${activeTab === tab.id
-                                        ? 'bg-black text-white'
-                                        : 'hover:bg-muted'
+                                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
+                                        ? 'border-black text-black'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground'
                                     }`}
                             >
                                 <Icon className="h-4 w-4" />
@@ -233,54 +278,78 @@ export default function SettingsPage() {
                             </button>
                         )
                     })}
-
-                    <Separator className="my-4" />
-
-                    {/* Team Members Link */}
-                    <Link
-                        href="/dashboard/settings/team"
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm hover:bg-muted group"
-                    >
-                        <Users className="h-4 w-4" />
-                        Team Members
-                        <ChevronRight className="h-3 w-3 ml-auto opacity-50 group-hover:opacity-100" />
-                    </Link>
-                </div>
+                </nav>
             </div>
 
-            {/* Main Content */}
-            <div className="flex-1 space-y-6 pb-24">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold">Settings</h1>
-                        <p className="text-muted-foreground">
-                            Configure your AI agent and business settings
-                        </p>
+            {/* Tab Content */}
+            <div className="space-y-6">
+                {/* Service Type Tab */}
+                {activeTab === 'service' && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>What type of service do you provide?</CardTitle>
+                            <CardDescription>
+                                Select your industry to auto-configure AI language and qualification settings
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                                {SERVICE_CATEGORIES.map(category => {
+                                    const Icon = category.icon
+                                    const isSelected = atomicConfig.business_identity.industry_niche === category.id
+                                    return (
+                                        <button
+                                            key={category.id}
+                                            onClick={() => handleServiceCategoryChange(category.id)}
+                                            className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${isSelected
+                                                    ? 'border-black bg-[#FAFAFA] shadow-sm'
+                                                    : 'border-transparent bg-muted/50 hover:bg-muted hover:border-[#CCCCCC]'
+                                                }`}
+                                        >
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${category.color}`}>
+                                                <Icon className="h-5 w-5" />
+                                            </div>
+                                            <span className="text-sm font-medium text-center">{category.label}</span>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+
+                            {/* Preview of auto-configured settings */}
+                            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Badge variant="outline" className={currentCategory.color}>
+                                        {currentCategory.label}
+                                    </Badge>
+                                    <span className="text-sm text-muted-foreground">Auto-configured:</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    AI will schedule a <span className="font-medium text-foreground">"{atomicConfig.linguistic_map.visit_title}"</span> with
+                                    your <span className="font-medium text-foreground">"{atomicConfig.linguistic_map.specialist_title}"</span> to
+                                    <span className="font-medium text-foreground"> {atomicConfig.linguistic_map.primary_action_verb}</span> their
+                                    <span className="font-medium text-foreground"> {atomicConfig.linguistic_map.noun_singular}</span>.
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Branding Tab - Combined Business Identity + Language */}
+                {activeTab === 'branding' && (
+                    <div className="space-y-6">
+                        <BusinessIdentitySection
+                            config={atomicConfig}
+                            onChange={handleAtomicConfigChange}
+                            onIndustryChange={handleServiceCategoryChange}
+                        />
+                        <LinguisticMapSection
+                            config={atomicConfig}
+                            onChange={handleAtomicConfigChange}
+                        />
                     </div>
-                    {tenant && (
-                        <Badge variant="outline" className="text-sm">
-                            Slug: {tenant.slug}
-                        </Badge>
-                    )}
-                </div>
-
-                {/* Tab Content */}
-                {activeTab === 'business' && (
-                    <BusinessIdentitySection
-                        config={atomicConfig}
-                        onChange={handleAtomicConfigChange}
-                        onIndustryChange={handleIndustryChange}
-                    />
                 )}
 
-                {activeTab === 'language' && (
-                    <LinguisticMapSection
-                        config={atomicConfig}
-                        onChange={handleAtomicConfigChange}
-                    />
-                )}
-
+                {/* Pricing Tab */}
                 {activeTab === 'pricing' && (
                     <FinancialLogicSection
                         config={atomicConfig}
@@ -288,20 +357,21 @@ export default function SettingsPage() {
                     />
                 )}
 
-                {activeTab === 'voice' && (
-                    <ConversationalSection
-                        config={atomicConfig}
-                        onChange={handleAtomicConfigChange}
-                    />
+                {/* AI Voice Tab - Combined Conversational + Qualification */}
+                {activeTab === 'ai' && (
+                    <div className="space-y-6">
+                        <ConversationalSection
+                            config={atomicConfig}
+                            onChange={handleAtomicConfigChange}
+                        />
+                        <QualificationSection
+                            config={atomicConfig}
+                            onChange={handleAtomicConfigChange}
+                        />
+                    </div>
                 )}
 
-                {activeTab === 'qualification' && (
-                    <QualificationSection
-                        config={atomicConfig}
-                        onChange={handleAtomicConfigChange}
-                    />
-                )}
-
+                {/* Integrations Tab */}
                 {activeTab === 'integrations' && (
                     <IntegrationsSection
                         config={atomicConfig}
@@ -310,34 +380,34 @@ export default function SettingsPage() {
                         onLegacyChange={handleLegacyChange}
                     />
                 )}
+            </div>
 
-                {/* Floating Save Button */}
-                <div className="fixed bottom-6 right-6 flex items-center gap-3 bg-white border shadow-lg rounded-lg px-4 py-3">
-                    {saveSuccess && (
-                        <div className="flex items-center gap-2 text-green-600">
-                            <CheckCircle className="h-4 w-4" />
-                            Saved
-                        </div>
+            {/* Floating Save Button */}
+            <div className="fixed bottom-6 right-6 flex items-center gap-3 bg-white border shadow-lg rounded-full px-6 py-3">
+                {saveSuccess && (
+                    <div className="flex items-center gap-2 text-green-600">
+                        <CheckCircle className="h-4 w-4" />
+                        Saved
+                    </div>
+                )}
+                <Button
+                    size="lg"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="rounded-full"
+                >
+                    {isSaving ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving...
+                        </>
+                    ) : (
+                        <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Save Changes
+                        </>
                     )}
-                    <Button
-                        size="lg"
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="btn-primary"
-                    >
-                        {isSaving ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Saving...
-                            </>
-                        ) : (
-                            <>
-                                <Save className="mr-2 h-4 w-4" />
-                                Save Changes
-                            </>
-                        )}
-                    </Button>
-                </div>
+                </Button>
             </div>
         </div>
     )

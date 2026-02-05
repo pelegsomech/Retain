@@ -54,38 +54,18 @@ export function BusinessIdentitySection({ config, onChange, onIndustryChange }: 
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                {/* Brand Name & Industry */}
-                <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="brand_name">Brand Name</Label>
-                        <Input
-                            id="brand_name"
-                            value={bi.brand_name}
-                            onChange={(e) => updateField('brand_name', e.target.value)}
-                            placeholder="Terra Decking"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            How the AI introduces your company
-                        </p>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="industry_niche">Industry</Label>
-                        <select
-                            id="industry_niche"
-                            value={bi.industry_niche}
-                            onChange={(e) => handleIndustryChange(e.target.value as IndustryNiche)}
-                            className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                        >
-                            {INDUSTRY_NICHES.map(niche => (
-                                <option key={niche} value={niche}>
-                                    {INDUSTRY_LABELS[niche]}
-                                </option>
-                            ))}
-                        </select>
-                        <p className="text-xs text-muted-foreground">
-                            Auto-fills language settings based on industry
-                        </p>
-                    </div>
+                {/* Brand Name */}
+                <div className="space-y-2">
+                    <Label htmlFor="brand_name">Brand Name</Label>
+                    <Input
+                        id="brand_name"
+                        value={bi.brand_name}
+                        onChange={(e) => updateField('brand_name', e.target.value)}
+                        placeholder="Terra Decking"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        How the AI introduces your company to leads
+                    </p>
                 </div>
 
                 {/* Agent Persona */}
@@ -100,8 +80,8 @@ export function BusinessIdentitySection({ config, onChange, onIndustryChange }: 
                                     type="button"
                                     onClick={() => updateField('agent_persona', persona)}
                                     className={`p-4 rounded-lg border-2 text-left transition-all ${bi.agent_persona === persona
-                                            ? 'border-black bg-[#FAFAFA]'
-                                            : 'border-[#EEEEEE] hover:border-[#CCCCCC]'
+                                        ? 'border-black bg-[#FAFAFA]'
+                                        : 'border-[#EEEEEE] hover:border-[#CCCCCC]'
                                         }`}
                                 >
                                     <div className="font-medium">{label}</div>
