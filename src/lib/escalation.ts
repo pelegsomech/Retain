@@ -217,7 +217,10 @@ export async function handleClaimTimeout(leadId: string): Promise<void> {
             tenantName: tenant.companyName || 'Our Company',
             fromNumber: tenant.twilioFromPhone,  // Required for Retell API
 
-            // Contractor context
+            // Atomic configuration (preferred if available)
+            atomicConfig: tenant.atomicConfig,
+
+            // Legacy contractor context (fallback)
             contractorType: tenant.contractorType || 'GENERAL',
             serviceList: serviceList,
             aiGreeting: tenant.aiGreeting || undefined,

@@ -6,6 +6,7 @@ import {
     type Tenant,
 } from '@/lib/firebase-admin'
 import { getOrCreateTenant, isAuthError } from '@/lib/auth'
+import { AtomicConfigSchema } from '@/lib/atomic-config'
 
 // POST /api/tenants - Create a new tenant (during onboarding)
 export async function POST(req: NextRequest) {
@@ -143,12 +144,14 @@ export async function PATCH(req: NextRequest) {
             'calcomApiKey',
             'consentText',
             'claimTimeoutSec',
-            // New AI configuration fields
+            // Legacy AI configuration fields (kept for backwards compat)
             'contractorType',
             'aiGreeting',
             'aiServiceList',
             'aiToneStyle',
             'aiObjections',
+            // New atomic configuration
+            'atomicConfig',
         ]
 
         const updateData: Record<string, unknown> = {
@@ -157,7 +160,19 @@ export async function PATCH(req: NextRequest) {
 
         for (const field of allowedFields) {
             if (field in body) {
-                updateData[field] = body[field]
+                // Validate atomicConfig with Zod if provided
+                if (field === 'atomicConfig' && body.atomicConfig) {
+                    const result = AtomicConfigSchema.safeParse(body.atomicConfig)
+                    if (!result.success) {
+                        return NextResponse.json(
+                            { error: 'Invalid atomicConfig', details: result.error.flatten() },
+                            { status: 400 }
+                        )
+                    }
+                    updateData[field] = result.data
+                } else {
+                    updateData[field] = body[field]
+                }
             }
         }
 

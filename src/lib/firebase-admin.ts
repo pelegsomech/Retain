@@ -111,6 +111,9 @@ export interface Tenant {
     consentText: string
     isActive: boolean
 
+    // Atomic Configuration (new structured config)
+    atomicConfig?: import('./atomic-config').AtomicConfig
+
     createdAt: Timestamp
     updatedAt: Timestamp
 }

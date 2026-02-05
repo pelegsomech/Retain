@@ -7,6 +7,11 @@ import {
     type ContractorType,
     type LeadStatus,
 } from '@/lib/firebase-admin'
+import {
+    type AtomicConfig,
+    buildRetellVariables,
+    migrateFromLegacyTenant,
+} from '@/lib/atomic-config'
 
 // Retell.ai API configuration
 const RETELL_API_KEY = process.env.RETELL_API_KEY
@@ -20,11 +25,14 @@ interface RetellCallParams {
     tenantName: string
     fromNumber: string           // Required: Outbound caller ID (Twilio phone)
 
-    // Contractor context (new - enhanced)
-    contractorType: ContractorType
-    serviceList: string[]        // ["roof repair", "roof replacement", "gutters"]
+    // Atomic Configuration (preferred - new structured config)
+    atomicConfig?: AtomicConfig
+
+    // Legacy contractor context (kept for backwards compatibility)
+    contractorType?: ContractorType
+    serviceList?: string[]       // ["roof repair", "roof replacement", "gutters"]
     aiGreeting?: string          // Custom opening line
-    toneStyle: string            // professional, casual, friendly
+    toneStyle?: string           // professional, casual, friendly
 
     // Lead context
     leadFirstName: string
@@ -83,10 +91,53 @@ export async function initiateRetellCall(params: RetellCallParams): Promise<Rete
         return null
     }
 
-    const serviceCategory = getServiceCategory(params.contractorType)
-    const serviceListStr = params.serviceList.length > 0
-        ? params.serviceList.join(', ')
-        : serviceCategory
+    // Lead context for Retell variables
+    const leadContext = {
+        firstName: params.leadFirstName,
+        lastName: params.leadLastName,
+        address: params.leadAddress,
+        city: params.leadCity,
+        projectNotes: params.projectNotes,
+    }
+
+    // Build dynamic variables - prefer atomicConfig if available
+    let dynamicVariables: Record<string, string>
+
+    if (params.atomicConfig) {
+        // Use new atomic config for rich variables
+        dynamicVariables = buildRetellVariables(params.atomicConfig, leadContext)
+        console.log('[Retell] Using atomic config for dynamic variables')
+    } else {
+        // Fallback to legacy fields
+        const contractorType = params.contractorType || 'GENERAL'
+        const serviceCategory = getServiceCategory(contractorType)
+        const serviceListStr = params.serviceList && params.serviceList.length > 0
+            ? params.serviceList.join(', ')
+            : serviceCategory
+
+        dynamicVariables = {
+            // Company context
+            brand_name: params.tenantName,
+            company_name: params.tenantName,
+            service_category: serviceCategory,
+            services_offered: serviceListStr,
+            tone_style: params.toneStyle || 'professional',
+
+            // Lead context
+            lead_name: params.leadFirstName,
+            lead_full_name: `${params.leadFirstName} ${params.leadLastName || ''}`.trim(),
+            lead_address: params.leadAddress || 'not provided',
+            lead_city: params.leadCity || 'your area',
+            project_notes: params.projectNotes || '',
+
+            // Custom greeting (if set)
+            custom_greeting: params.aiGreeting || '',
+
+            // Booking
+            calendar_link: params.calendarLink || '',
+            has_calendar: params.calendarLink ? 'true' : 'false',
+        }
+    }
 
     try {
         // Create call with rich dynamic metadata for agent personalization
@@ -104,33 +155,13 @@ export async function initiateRetellCall(params: RetellCallParams): Promise<Rete
                 metadata: {
                     lead_id: params.leadId,
                     tenant_id: params.tenantId,
-                    contractor_type: params.contractorType,
+                    contractor_type: params.atomicConfig?.business_identity.industry_niche || params.contractorType || 'GENERAL',
                     lead_name: `${params.leadFirstName} ${params.leadLastName || ''}`.trim(),
                     lead_address: params.leadAddress,
                     lead_city: params.leadCity,
                 },
                 // Dynamic variables injected into agent prompt
-                retell_llm_dynamic_variables: {
-                    // Company context
-                    company_name: params.tenantName,
-                    service_category: serviceCategory,
-                    services_offered: serviceListStr,
-                    tone_style: params.toneStyle,
-
-                    // Lead context
-                    lead_name: params.leadFirstName,
-                    lead_full_name: `${params.leadFirstName} ${params.leadLastName || ''}`.trim(),
-                    lead_address: params.leadAddress || 'not provided',
-                    lead_city: params.leadCity || 'your area',
-                    project_notes: params.projectNotes || '',
-
-                    // Custom greeting (if set)
-                    custom_greeting: params.aiGreeting || '',
-
-                    // Booking
-                    calendar_link: params.calendarLink || '',
-                    has_calendar: params.calendarLink ? 'true' : 'false',
-                },
+                retell_llm_dynamic_variables: dynamicVariables,
             }),
         })
 
