@@ -4,33 +4,48 @@ import { handleRetellWebhook } from '@/lib/retell'
 /**
  * POST /api/webhooks/retell
  * Receives call completion webhooks from Retell.ai
+ * 
+ * Retell sends webhooks with structure:
+ * { event: "call_started" | "call_ended" | "call_analyzed", call: { call_id, ... } }
  */
 export async function POST(req: NextRequest) {
     try {
         const payload = await req.json()
 
-        // Validate required fields
-        if (!payload.call_id) {
+        console.log('[Webhook] Retell event received:', payload.event, JSON.stringify(payload).substring(0, 500))
+
+        // Retell sends call data inside a `call` object
+        const call = payload.call
+        
+        // Validate required fields - call_id is inside the call object
+        if (!call?.call_id) {
+            console.error('[Webhook] Missing call.call_id in payload:', Object.keys(payload))
             return NextResponse.json(
                 { error: 'Missing call_id' },
                 { status: 400 }
             )
         }
 
-        console.log('[Webhook] Retell event received:', payload.call_status, {
-            hasRecording: !!payload.recording_url,
-            hasTranscript: !!payload.transcript,
+        // Extract call status from the call object
+        const callStatus = call.call_status || call.status || payload.event
+
+        console.log('[Webhook] Processing call:', {
+            callId: call.call_id,
+            status: callStatus,
+            hasRecording: !!call.recording_url,
+            hasTranscript: !!call.transcript,
+            hasAnalysis: !!call.call_analysis,
         })
 
-        // Only process completed calls
-        if (payload.call_status === 'ended' || payload.call_status === 'completed') {
+        // Process completed or analyzed calls
+        if (callStatus === 'ended' || callStatus === 'completed' || payload.event === 'call_ended' || payload.event === 'call_analyzed') {
             await handleRetellWebhook({
-                call_id: payload.call_id,
-                call_status: payload.call_status,
-                duration_seconds: payload.duration_ms ? Math.round(payload.duration_ms / 1000) : undefined,
-                transcript: payload.transcript,
-                recording_url: payload.recording_url,
-                call_analysis: payload.call_analysis,
+                call_id: call.call_id,
+                call_status: callStatus,
+                duration_seconds: call.duration_ms ? Math.round(call.duration_ms / 1000) : (call.end_timestamp && call.start_timestamp ? Math.round((call.end_timestamp - call.start_timestamp) / 1000) : undefined),
+                transcript: call.transcript,
+                recording_url: call.recording_url,
+                call_analysis: call.call_analysis,
             })
         }
 
