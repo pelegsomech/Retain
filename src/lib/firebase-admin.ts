@@ -105,6 +105,7 @@ export interface Tenant {
     calendarUrl?: string
     ghlApiKey?: string
     calcomApiKey?: string
+    calcomEventTypeId?: number  // Cal.com event type ID for booking
 
     // Settings
     claimTimeoutSec: number
