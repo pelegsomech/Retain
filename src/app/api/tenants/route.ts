@@ -142,6 +142,7 @@ export async function PATCH(req: NextRequest) {
             'calendarUrl',
             'ghlApiKey',
             'calcomApiKey',
+            'calcomEventTypeId',
             'consentText',
             'claimTimeoutSec',
             // Legacy AI configuration fields (kept for backwards compat)

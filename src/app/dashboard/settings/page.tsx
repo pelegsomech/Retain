@@ -71,6 +71,8 @@ interface Tenant {
     twilioSid?: string
     retellAgentId?: string
     calendarUrl?: string
+    calcomApiKey?: string
+    calcomEventTypeId?: number
 }
 
 export default function SettingsPage() {
@@ -89,6 +91,8 @@ export default function SettingsPage() {
     const [twilioPhone, setTwilioPhone] = useState('')
     const [retellAgentId, setRetellAgentId] = useState('')
     const [calendarUrl, setCalendarUrl] = useState('')
+    const [calcomApiKey, setCalcomApiKey] = useState('')
+    const [calcomEventTypeId, setCalcomEventTypeId] = useState('')
 
     // Atomic config (auto-generated from service type)
     const [atomicConfig, setAtomicConfig] = useState<AtomicConfig | null>(null)
@@ -111,6 +115,8 @@ export default function SettingsPage() {
                 setTwilioPhone(t.twilioFromPhone || '')
                 setRetellAgentId(t.retellAgentId || '')
                 setCalendarUrl(t.calendarUrl || '')
+                setCalcomApiKey(t.calcomApiKey || '')
+                setCalcomEventTypeId(t.calcomEventTypeId ? String(t.calcomEventTypeId) : '')
 
                 // Initialize atomic config
                 if (t.atomicConfig) {
@@ -179,6 +185,8 @@ export default function SettingsPage() {
                     twilioFromPhone: twilioPhone,
                     retellAgentId,
                     calendarUrl,
+                    calcomApiKey: calcomApiKey || undefined,
+                    calcomEventTypeId: calcomEventTypeId ? parseInt(calcomEventTypeId) : undefined,
                     atomicConfig,
                 }),
             })
@@ -401,18 +409,39 @@ export default function SettingsPage() {
 
                             <Separator />
 
-                            {/* Calendar */}
+                            {/* Cal.com Integration */}
                             <div className="space-y-2">
-                                <Label>Calendar Booking Link</Label>
+                                <Label>Cal.com API Key</Label>
                                 <Input
-                                    value={calendarUrl}
-                                    onChange={(e) => setCalendarUrl(e.target.value)}
-                                    placeholder="https://cal.com/yourcompany"
+                                    type="password"
+                                    value={calcomApiKey}
+                                    onChange={(e) => setCalcomApiKey(e.target.value)}
+                                    placeholder="cal_live_xxxxx"
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Where leads book appointments
+                                    Get from Cal.com → Settings → Developer
                                 </p>
                             </div>
+
+                            <div className="space-y-2">
+                                <Label>Cal.com Event Type ID</Label>
+                                <Input
+                                    type="number"
+                                    value={calcomEventTypeId}
+                                    onChange={(e) => setCalcomEventTypeId(e.target.value)}
+                                    placeholder="1234567"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    From cal.com/event-types/[ID]
+                                </p>
+                            </div>
+
+                            {calcomApiKey && calcomEventTypeId && (
+                                <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 rounded-lg p-3">
+                                    <CheckCircle className="h-4 w-4" />
+                                    Calendar connected — AI can book appointments
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 )}
