@@ -4,20 +4,20 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import {
     Loader2,
     Save,
     CheckCircle,
     Users,
     ChevronRight,
+    ChevronDown,
     Building2,
-    MessageSquare,
-    DollarSign,
-    AudioLines,
-    ClipboardCheck,
-    Settings2,
-    Hammer,
     Home,
     Leaf,
     Paintbrush,
@@ -26,68 +26,51 @@ import {
     Droplets,
     Zap,
     LayoutGrid,
+    Hammer,
+    Phone,
+    Clock,
+    MessageSquare,
+    Settings2,
+    Sparkles,
 } from "lucide-react"
 
-// Section components
-import { BusinessIdentitySection } from './components/BusinessIdentitySection'
-import { LinguisticMapSection } from './components/LinguisticMapSection'
-import { FinancialLogicSection } from './components/FinancialLogicSection'
-import { ConversationalSection } from './components/ConversationalSection'
-import { QualificationSection } from './components/QualificationSection'
-import { IntegrationsSection } from './components/IntegrationsSection'
-
-// Schema imports
 import {
     type AtomicConfig,
     type IndustryNiche,
     createDefaultAtomicConfig,
     INDUSTRY_PRESETS,
-    INDUSTRY_LABELS,
 } from '@/lib/atomic-config'
 
-// Service category visual cards with icons
+// Service categories with icons and colors
 const SERVICE_CATEGORIES: {
     id: IndustryNiche
     label: string
     icon: React.ElementType
     color: string
+    description: string
 }[] = [
-        { id: 'ROOFING', label: 'Roofing', icon: Home, color: 'bg-orange-100 text-orange-700' },
-        { id: 'HVAC', label: 'HVAC', icon: Snowflake, color: 'bg-blue-100 text-blue-700' },
-        { id: 'PLUMBING', label: 'Plumbing', icon: Droplets, color: 'bg-cyan-100 text-cyan-700' },
-        { id: 'ELECTRICAL', label: 'Electrical', icon: Zap, color: 'bg-yellow-100 text-yellow-700' },
-        { id: 'DECKING', label: 'Decking', icon: LayoutGrid, color: 'bg-amber-100 text-amber-700' },
-        { id: 'PAINTING', label: 'Painting', icon: Paintbrush, color: 'bg-purple-100 text-purple-700' },
-        { id: 'LANDSCAPING', label: 'Landscaping', icon: Leaf, color: 'bg-green-100 text-green-700' },
-        { id: 'SOLAR', label: 'Solar', icon: Sun, color: 'bg-yellow-100 text-yellow-700' },
-        { id: 'KITCHEN_BATH', label: 'Kitchen & Bath', icon: Home, color: 'bg-pink-100 text-pink-700' },
-        { id: 'WINDOWS_DOORS', label: 'Windows & Doors', icon: Home, color: 'bg-teal-100 text-teal-700' },
-        { id: 'REMODELING', label: 'Remodeling', icon: Hammer, color: 'bg-slate-100 text-slate-700' },
-        { id: 'GENERAL', label: 'Other', icon: Building2, color: 'bg-gray-100 text-gray-700' },
+        { id: 'HVAC', label: 'HVAC', icon: Snowflake, color: 'bg-blue-100 text-blue-700 border-blue-200', description: 'Heating & cooling' },
+        { id: 'ROOFING', label: 'Roofing', icon: Home, color: 'bg-orange-100 text-orange-700 border-orange-200', description: 'Roof repair & install' },
+        { id: 'PLUMBING', label: 'Plumbing', icon: Droplets, color: 'bg-cyan-100 text-cyan-700 border-cyan-200', description: 'Pipes & fixtures' },
+        { id: 'ELECTRICAL', label: 'Electrical', icon: Zap, color: 'bg-yellow-100 text-yellow-700 border-yellow-200', description: 'Wiring & panels' },
+        { id: 'DECKING', label: 'Decking', icon: LayoutGrid, color: 'bg-amber-100 text-amber-700 border-amber-200', description: 'Decks & patios' },
+        { id: 'PAINTING', label: 'Painting', icon: Paintbrush, color: 'bg-purple-100 text-purple-700 border-purple-200', description: 'Interior & exterior' },
+        { id: 'LANDSCAPING', label: 'Landscaping', icon: Leaf, color: 'bg-green-100 text-green-700 border-green-200', description: 'Yards & gardens' },
+        { id: 'SOLAR', label: 'Solar', icon: Sun, color: 'bg-amber-100 text-amber-700 border-amber-200', description: 'Solar installation' },
+        { id: 'REMODELING', label: 'Remodeling', icon: Hammer, color: 'bg-slate-100 text-slate-700 border-slate-200', description: 'Home renovation' },
+        { id: 'GENERAL', label: 'Other', icon: Building2, color: 'bg-gray-100 text-gray-700 border-gray-200', description: 'General services' },
     ]
-
-// Simplified tab configuration with horizontal layout
-const TABS = [
-    { id: 'service', label: 'Service Type', icon: Building2 },
-    { id: 'branding', label: 'Branding', icon: MessageSquare },
-    { id: 'pricing', label: 'Pricing', icon: DollarSign },
-    { id: 'ai', label: 'AI Voice', icon: AudioLines },
-    { id: 'integrations', label: 'Integrations', icon: Settings2 },
-] as const
-
-type TabId = typeof TABS[number]['id']
 
 interface Tenant {
     id: string
     companyName: string
     slug: string
     atomicConfig?: AtomicConfig
-    // Legacy fields
+    claimTimeoutSec?: number
     twilioFromPhone?: string
     twilioSid?: string
     retellAgentId?: string
     calendarUrl?: string
-    claimTimeoutSec?: number
 }
 
 export default function SettingsPage() {
@@ -95,18 +78,20 @@ export default function SettingsPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
     const [saveSuccess, setSaveSuccess] = useState(false)
-    const [activeTab, setActiveTab] = useState<TabId>('service')
+    const [showAdvanced, setShowAdvanced] = useState(false)
 
-    // Atomic config state
+    // Core settings
+    const [companyName, setCompanyName] = useState('')
+    const [serviceType, setServiceType] = useState<IndustryNiche>('GENERAL')
+    const [callTimerSeconds, setCallTimerSeconds] = useState(60)
+
+    // Integration settings (advanced)
+    const [twilioPhone, setTwilioPhone] = useState('')
+    const [retellAgentId, setRetellAgentId] = useState('')
+    const [calendarUrl, setCalendarUrl] = useState('')
+
+    // Atomic config (auto-generated from service type)
     const [atomicConfig, setAtomicConfig] = useState<AtomicConfig | null>(null)
-
-    // Legacy integrations (kept separate for backwards compat)
-    const [legacyIntegrations, setLegacyIntegrations] = useState({
-        twilioSid: '',
-        twilioFromPhone: '',
-        retellAgentId: '',
-        calendarUrl: '',
-    })
 
     useEffect(() => {
         fetchTenant()
@@ -120,25 +105,21 @@ export default function SettingsPage() {
                 const t = data.tenant as Tenant
                 setTenant(t)
 
-                // Initialize atomic config (use existing or create default)
+                // Initialize from tenant
+                setCompanyName(t.companyName || '')
+                setCallTimerSeconds(t.claimTimeoutSec || 60)
+                setTwilioPhone(t.twilioFromPhone || '')
+                setRetellAgentId(t.retellAgentId || '')
+                setCalendarUrl(t.calendarUrl || '')
+
+                // Initialize atomic config
                 if (t.atomicConfig) {
                     setAtomicConfig(t.atomicConfig)
+                    setServiceType(t.atomicConfig.business_identity.industry_niche)
                 } else {
-                    const defaultConfig = createDefaultAtomicConfig(
-                        t.id,
-                        t.companyName,
-                        'GENERAL'
-                    )
+                    const defaultConfig = createDefaultAtomicConfig(t.id, t.companyName, 'GENERAL')
                     setAtomicConfig(defaultConfig)
                 }
-
-                // Initialize legacy fields
-                setLegacyIntegrations({
-                    twilioSid: t.twilioSid || '',
-                    twilioFromPhone: t.twilioFromPhone || '',
-                    retellAgentId: t.retellAgentId || '',
-                    calendarUrl: t.calendarUrl || '',
-                })
             }
         } catch (error) {
             console.error('Failed to fetch tenant:', error)
@@ -147,53 +128,39 @@ export default function SettingsPage() {
         }
     }
 
-    const handleAtomicConfigChange = (updates: Partial<AtomicConfig>) => {
-        if (!atomicConfig) return
-        setAtomicConfig({
-            ...atomicConfig,
-            ...updates,
-            business_identity: updates.business_identity
-                ? { ...atomicConfig.business_identity, ...updates.business_identity }
-                : atomicConfig.business_identity,
-            linguistic_map: updates.linguistic_map
-                ? { ...atomicConfig.linguistic_map, ...updates.linguistic_map }
-                : atomicConfig.linguistic_map,
-            financial_logic: updates.financial_logic
-                ? { ...atomicConfig.financial_logic, ...updates.financial_logic }
-                : atomicConfig.financial_logic,
-            conversational_parameters: updates.conversational_parameters
-                ? { ...atomicConfig.conversational_parameters, ...updates.conversational_parameters }
-                : atomicConfig.conversational_parameters,
-            qualification_checklist: updates.qualification_checklist
-                ? { ...atomicConfig.qualification_checklist, ...updates.qualification_checklist }
-                : atomicConfig.qualification_checklist,
-            technical_integration: updates.technical_integration
-                ? { ...atomicConfig.technical_integration, ...updates.technical_integration }
-                : atomicConfig.technical_integration,
-        })
-    }
+    const handleServiceTypeChange = (niche: IndustryNiche) => {
+        setServiceType(niche)
 
-    const handleServiceCategoryChange = (niche: IndustryNiche) => {
-        if (!atomicConfig) return
-
+        // Auto-update atomic config with preset
         const preset = INDUSTRY_PRESETS[niche]
-
-        setAtomicConfig({
-            ...atomicConfig,
-            business_identity: {
-                ...atomicConfig.business_identity,
-                industry_niche: niche,
-            },
-            linguistic_map: { ...preset },
-            qualification_checklist: {
-                ...atomicConfig.qualification_checklist,
-                ask_insurance_claim: niche === 'ROOFING',
-            },
-        })
+        if (atomicConfig) {
+            setAtomicConfig({
+                ...atomicConfig,
+                business_identity: {
+                    ...atomicConfig.business_identity,
+                    industry_niche: niche,
+                    brand_name: companyName,
+                },
+                linguistic_map: { ...preset },
+                qualification_checklist: {
+                    ...atomicConfig.qualification_checklist,
+                    ask_insurance_claim: niche === 'ROOFING',
+                },
+            })
+        }
     }
 
-    const handleLegacyChange = (field: string, value: string) => {
-        setLegacyIntegrations(prev => ({ ...prev, [field]: value }))
+    const handleCompanyNameChange = (name: string) => {
+        setCompanyName(name)
+        if (atomicConfig) {
+            setAtomicConfig({
+                ...atomicConfig,
+                business_identity: {
+                    ...atomicConfig.business_identity,
+                    brand_name: name,
+                },
+            })
+        }
     }
 
     const handleSave = async () => {
@@ -207,9 +174,12 @@ export default function SettingsPage() {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    companyName,
+                    claimTimeoutSec: callTimerSeconds,
+                    twilioFromPhone: twilioPhone,
+                    retellAgentId,
+                    calendarUrl,
                     atomicConfig,
-                    ...legacyIntegrations,
-                    companyName: atomicConfig.business_identity.brand_name,
                 }),
             })
 
@@ -217,11 +187,10 @@ export default function SettingsPage() {
                 setSaveSuccess(true)
                 setTimeout(() => setSaveSuccess(false), 3000)
             } else {
-                const error = await response.json()
-                console.error('Save failed:', error)
+                console.error('Save failed:', await response.json())
             }
         } catch (error) {
-            console.error('Failed to save settings:', error)
+            console.error('Failed to save:', error)
         } finally {
             setIsSaving(false)
         }
@@ -235,23 +204,22 @@ export default function SettingsPage() {
         )
     }
 
-    const currentCategory = SERVICE_CATEGORIES.find(
-        c => c.id === atomicConfig.business_identity.industry_niche
-    ) || SERVICE_CATEGORIES[SERVICE_CATEGORIES.length - 1]
+    const currentCategory = SERVICE_CATEGORIES.find(c => c.id === serviceType) || SERVICE_CATEGORIES[SERVICE_CATEGORIES.length - 1]
+    const linguistics = atomicConfig.linguistic_map
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6 pb-24">
+        <div className="max-w-3xl mx-auto space-y-8 pb-32">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold">Settings</h1>
                     <p className="text-muted-foreground text-sm">
-                        Configure your AI agent and business profile
+                        Configure your AI agent in seconds
                     </p>
                 </div>
                 <Link
                     href="/dashboard/settings/team"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-muted transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-muted transition-colors text-sm"
                 >
                     <Users className="h-4 w-4" />
                     Team
@@ -259,126 +227,194 @@ export default function SettingsPage() {
                 </Link>
             </div>
 
-            {/* Horizontal Tabs */}
-            <div className="border-b">
-                <nav className="flex gap-1">
-                    {TABS.map(tab => {
-                        const Icon = tab.icon
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
-                                        ? 'border-black text-black'
-                                        : 'border-transparent text-muted-foreground hover:text-foreground'
-                                    }`}
-                            >
-                                <Icon className="h-4 w-4" />
-                                {tab.label}
-                            </button>
-                        )
-                    })}
-                </nav>
-            </div>
+            {/* Company Name */}
+            <Card>
+                <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <Building2 className="h-5 w-5" />
+                        Company Name
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Input
+                        value={companyName}
+                        onChange={(e) => handleCompanyNameChange(e.target.value)}
+                        placeholder="Terra Decks"
+                        className="text-lg"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                        How the AI introduces your company on calls
+                    </p>
+                </CardContent>
+            </Card>
 
-            {/* Tab Content */}
-            <div className="space-y-6">
-                {/* Service Type Tab */}
-                {activeTab === 'service' && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>What type of service do you provide?</CardTitle>
-                            <CardDescription>
-                                Select your industry to auto-configure AI language and qualification settings
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                                {SERVICE_CATEGORIES.map(category => {
-                                    const Icon = category.icon
-                                    const isSelected = atomicConfig.business_identity.industry_niche === category.id
-                                    return (
-                                        <button
-                                            key={category.id}
-                                            onClick={() => handleServiceCategoryChange(category.id)}
-                                            className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${isSelected
-                                                    ? 'border-black bg-[#FAFAFA] shadow-sm'
-                                                    : 'border-transparent bg-muted/50 hover:bg-muted hover:border-[#CCCCCC]'
-                                                }`}
-                                        >
-                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${category.color}`}>
-                                                <Icon className="h-5 w-5" />
-                                            </div>
-                                            <span className="text-sm font-medium text-center">{category.label}</span>
-                                        </button>
-                                    )
-                                })}
+            {/* Service Type */}
+            <Card>
+                <CardHeader className="pb-4">
+                    <CardTitle className="text-lg">What service do you provide?</CardTitle>
+                    <CardDescription>
+                        This automatically configures how the AI talks about your work
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                        {SERVICE_CATEGORIES.map(category => {
+                            const Icon = category.icon
+                            const isSelected = serviceType === category.id
+                            return (
+                                <button
+                                    key={category.id}
+                                    onClick={() => handleServiceTypeChange(category.id)}
+                                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${isSelected
+                                        ? 'border-black bg-black/5 shadow-sm'
+                                        : 'border-transparent bg-muted/50 hover:bg-muted'
+                                        }`}
+                                >
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${category.color}`}>
+                                        <Icon className="h-5 w-5" />
+                                    </div>
+                                    <span className="text-sm font-medium">{category.label}</span>
+                                </button>
+                            )
+                        })}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* AI Preview */}
+            <Card className="bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
+                <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <Sparkles className="h-5 w-5 text-amber-500" />
+                        AI Preview
+                    </CardTitle>
+                    <CardDescription>
+                        How your AI agent will talk to leads
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="bg-white rounded-lg p-4 border shadow-sm space-y-3">
+                        <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center flex-shrink-0">
+                                <Phone className="h-4 w-4 text-white" />
+                            </div>
+                            <div className="space-y-2">
+                                <p className="text-sm">
+                                    "Hi, is this <span className="font-semibold text-blue-600">[Name]</span>?
+                                    Great! This is Alex with <span className="font-semibold text-blue-600">{companyName || '[Company]'}</span>.
+                                    I saw you reached out about a <span className="font-semibold text-blue-600">{linguistics.noun_singular}</span> —
+                                    just following up to see how I can help."
+                                </p>
+                                <p className="text-sm">
+                                    "The easiest next step is a quick <span className="font-semibold text-blue-600">{linguistics.visit_title}</span> —
+                                    our <span className="font-semibold text-blue-600">{linguistics.specialist_title}</span> comes out,
+                                    checks things out, and gives you real options with pricing."
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-3">
+                        <Badge variant="outline" className={currentCategory.color}>
+                            {currentCategory.label}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                            Auto-configured terminology
+                        </span>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Call Timer */}
+            <Card>
+                <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <Clock className="h-5 w-5" />
+                        AI Call Timer
+                    </CardTitle>
+                    <CardDescription>
+                        How long to wait before AI calls a new lead
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <span className="text-3xl font-bold">{callTimerSeconds}s</span>
+                        <span className="text-sm text-muted-foreground">
+                            {callTimerSeconds < 60 ? 'Quick response' : callTimerSeconds < 120 ? 'Standard' : 'Delayed'}
+                        </span>
+                    </div>
+                    <Slider
+                        value={[callTimerSeconds]}
+                        onValueChange={(v: number[]) => setCallTimerSeconds(v[0])}
+                        min={30}
+                        max={300}
+                        step={15}
+                        className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>30s (instant)</span>
+                        <span>300s (5 min)</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                        💡 When a lead comes in, your team has this long to claim it before the AI calls automatically.
+                    </p>
+                </CardContent>
+            </Card>
+
+            {/* Advanced Settings Toggle */}
+            <div>
+                <button
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                    <Settings2 className="h-4 w-4" />
+                    Advanced Settings
+                    <ChevronDown className={`h-4 w-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showAdvanced && (
+                    <Card className="mt-4">
+                        <CardContent className="pt-6 space-y-6">
+                            {/* Twilio */}
+                            <div className="space-y-2">
+                                <Label>Twilio Phone Number</Label>
+                                <Input
+                                    value={twilioPhone}
+                                    onChange={(e) => setTwilioPhone(e.target.value)}
+                                    placeholder="+1234567890"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    The phone number AI calls from
+                                </p>
                             </div>
 
-                            {/* Preview of auto-configured settings */}
-                            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Badge variant="outline" className={currentCategory.color}>
-                                        {currentCategory.label}
-                                    </Badge>
-                                    <span className="text-sm text-muted-foreground">Auto-configured:</span>
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                    AI will schedule a <span className="font-medium text-foreground">"{atomicConfig.linguistic_map.visit_title}"</span> with
-                                    your <span className="font-medium text-foreground">"{atomicConfig.linguistic_map.specialist_title}"</span> to
-                                    <span className="font-medium text-foreground"> {atomicConfig.linguistic_map.primary_action_verb}</span> their
-                                    <span className="font-medium text-foreground"> {atomicConfig.linguistic_map.noun_singular}</span>.
+                            <Separator />
+
+                            {/* Retell */}
+                            <div className="space-y-2">
+                                <Label>Retell Agent ID</Label>
+                                <Input
+                                    value={retellAgentId}
+                                    onChange={(e) => setRetellAgentId(e.target.value)}
+                                    placeholder="agent_xxxxx"
+                                />
+                            </div>
+
+                            <Separator />
+
+                            {/* Calendar */}
+                            <div className="space-y-2">
+                                <Label>Calendar Booking Link</Label>
+                                <Input
+                                    value={calendarUrl}
+                                    onChange={(e) => setCalendarUrl(e.target.value)}
+                                    placeholder="https://cal.com/yourcompany"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Where leads book appointments
                                 </p>
                             </div>
                         </CardContent>
                     </Card>
-                )}
-
-                {/* Branding Tab - Combined Business Identity + Language */}
-                {activeTab === 'branding' && (
-                    <div className="space-y-6">
-                        <BusinessIdentitySection
-                            config={atomicConfig}
-                            onChange={handleAtomicConfigChange}
-                            onIndustryChange={handleServiceCategoryChange}
-                        />
-                        <LinguisticMapSection
-                            config={atomicConfig}
-                            onChange={handleAtomicConfigChange}
-                        />
-                    </div>
-                )}
-
-                {/* Pricing Tab */}
-                {activeTab === 'pricing' && (
-                    <FinancialLogicSection
-                        config={atomicConfig}
-                        onChange={handleAtomicConfigChange}
-                    />
-                )}
-
-                {/* AI Voice Tab - Combined Conversational + Qualification */}
-                {activeTab === 'ai' && (
-                    <div className="space-y-6">
-                        <ConversationalSection
-                            config={atomicConfig}
-                            onChange={handleAtomicConfigChange}
-                        />
-                        <QualificationSection
-                            config={atomicConfig}
-                            onChange={handleAtomicConfigChange}
-                        />
-                    </div>
-                )}
-
-                {/* Integrations Tab */}
-                {activeTab === 'integrations' && (
-                    <IntegrationsSection
-                        config={atomicConfig}
-                        onChange={handleAtomicConfigChange}
-                        legacyIntegrations={legacyIntegrations}
-                        onLegacyChange={handleLegacyChange}
-                    />
                 )}
             </div>
 
