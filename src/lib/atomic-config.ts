@@ -404,7 +404,7 @@ export function createDefaultAtomicConfig(
 
 /**
  * Build the retell_llm_dynamic_variables object from an AtomicConfig
- * These variables are injected into the Retell agent prompt at call time
+ * Simplified to only include the essential variables the prompt actually uses
  */
 export function buildRetellVariables(
     config: AtomicConfig,
@@ -418,74 +418,28 @@ export function buildRetellVariables(
 ): Record<string, string> {
     const bi = config.business_identity
     const lm = config.linguistic_map
-    const cp = config.conversational_parameters
-    const qc = config.qualification_checklist
     const ti = config.technical_integration
-    const fl = config.financial_logic
-
-    // Build qualification prompt based on checklist
-    const qualificationAsks: string[] = []
-    if (qc.ask_property_ownership) qualificationAsks.push('confirm property ownership')
-    if (qc.ask_decision_makers) qualificationAsks.push('confirm decision-maker presence')
-    if (qc.ask_budget_range) qualificationAsks.push('ask about budget range')
-    if (qc.ask_timeline) qualificationAsks.push('ask about project timeline')
-    if (qc.ask_insurance_claim) qualificationAsks.push('ask if this is an insurance claim')
-    if (qc.ask_financing_interest) qualificationAsks.push('ask about financing interest')
-    if (qc.ask_permit_status) qualificationAsks.push('ask about permit status')
-
-    // Build fee description
-    let feeDescription = 'free'
-    if (fl.fee_strategy === 'flat_fee') {
-        feeDescription = `$${(fl.fee_amount / 100).toFixed(0)}`
-    } else if (fl.fee_strategy === 'deposit_required') {
-        feeDescription = `$${(fl.fee_amount / 100).toFixed(0)} deposit`
-    }
 
     return {
-        // Business Identity
+        // Brand (how AI introduces the company)
         brand_name: bi.brand_name,
-        agent_persona: bi.agent_persona,
-        primary_service: bi.primary_service,
-        service_area: bi.service_area_description,
-        office_city: bi.local_office_city,
-        industry: bi.industry_niche.toLowerCase().replace('_', ' '),
+        service_area: bi.service_area_description || 'your area',
 
-        // Linguistic Map (for slot-filling in prompts)
+        // Language (auto-set by service type)
         noun_singular: lm.noun_singular,
         noun_plural: lm.noun_plural,
         visit_title: lm.visit_title,
         specialist_title: lm.specialist_title,
-        action_verb: lm.primary_action_verb,
-        urgency_hook: lm.urgency_hook,
 
-        // Conversational Style
-        latency_fillers: cp.latency_fillers.join(', '),
-        speech_pacing: cp.speech_pacing,
-        formality: cp.formality_level,
-        use_disfluencies: cp.use_disfluencies ? 'true' : 'false',
-        max_sentence_words: String(cp.sentence_length_max),
-        interruption_tolerance: cp.interruption_tolerance,
-
-        // Qualification
-        qualification_asks: qualificationAsks.length > 0
-            ? qualificationAsks.join('; ')
-            : 'no specific qualification questions',
-
-        // Financial
-        fee_description: feeDescription,
-        credit_to_project: fl.credit_to_project ? 'true' : 'false',
-
-        // Calendar
-        calendar_link: ti.calendar_id || '',
-        has_calendar: ti.calendar_provider ? 'true' : 'false',
-        sms_confirmation: ti.sms_confirmation ? 'true' : 'false',
-
-        // Lead Context
+        // Lead (injected per-call)
         lead_name: leadContext.firstName,
         lead_full_name: `${leadContext.firstName} ${leadContext.lastName || ''}`.trim(),
-        lead_address: leadContext.address || 'not provided',
-        lead_city: leadContext.city || 'your area',
+        lead_address: leadContext.address || '',
+        lead_city: leadContext.city || '',
         project_notes: leadContext.projectNotes || '',
+
+        // Calendar (for booking)
+        calendar_link: ti.calendar_id || '',
     }
 }
 
