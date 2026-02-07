@@ -1,9 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
     Select,
@@ -18,7 +16,6 @@ import {
     Clock,
     User,
     Bot,
-    CheckCircle,
     XCircle,
     Calendar,
     Search,
@@ -48,17 +45,17 @@ interface Lead {
     createdAt: string | { _seconds: number; _nanoseconds: number };
 }
 
-const STATUS_COLORS: Record<string, string> = {
-    NEW: 'bg-blue-100 text-blue-800',
-    SMS_SENT: 'bg-yellow-100 text-yellow-800',
-    CLAIMED: 'bg-green-100 text-green-800',
-    AI_CALLING: 'bg-purple-100 text-purple-800',
-    AI_QUALIFIED: 'bg-indigo-100 text-indigo-800',
-    BOOKED: 'bg-emerald-100 text-emerald-800',
-    CALLBACK_SCHEDULED: 'bg-orange-100 text-orange-800',
-    DISQUALIFIED: 'bg-red-100 text-red-800',
-    NO_ANSWER: 'bg-gray-100 text-gray-800',
-    DEAD: 'bg-gray-200 text-gray-600',
+const STATUS_MAP: Record<string, { label: string; className: string }> = {
+    NEW: { label: 'New', className: 'status-new' },
+    SMS_SENT: { label: 'SMS Sent', className: 'status-sms' },
+    CLAIMED: { label: 'Claimed', className: 'status-claimed' },
+    AI_CALLING: { label: 'AI Calling', className: 'status-ai' },
+    AI_QUALIFIED: { label: 'AI Qualified', className: 'status-ai' },
+    BOOKED: { label: 'Booked', className: 'status-booked' },
+    CALLBACK_SCHEDULED: { label: 'Callback', className: 'status-callback' },
+    DISQUALIFIED: { label: 'Disqualified', className: 'status-declined' },
+    NO_ANSWER: { label: 'No Answer', className: 'status-dead' },
+    DEAD: { label: 'Dead', className: 'status-dead' },
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -120,27 +117,26 @@ export default function LeadsPage() {
     });
 
     const getStatusIcon = (status: string) => {
+        const iconStyle = { width: 14, height: 14, strokeWidth: 1.75 };
         switch (status) {
-            case 'CLAIMED': return <User className="h-4 w-4" />;
-            case 'AI_CALLING': case 'AI_QUALIFIED': return <Bot className="h-4 w-4" />;
-            case 'BOOKED': return <Calendar className="h-4 w-4" />;
-            case 'DISQUALIFIED': return <XCircle className="h-4 w-4" />;
-            case 'SMS_SENT': return <MessageSquare className="h-4 w-4" />;
-            default: return <Clock className="h-4 w-4" />;
+            case 'CLAIMED': return <User style={iconStyle} />;
+            case 'AI_CALLING': case 'AI_QUALIFIED': return <Bot style={iconStyle} />;
+            case 'BOOKED': return <Calendar style={iconStyle} />;
+            case 'DISQUALIFIED': return <XCircle style={iconStyle} />;
+            case 'SMS_SENT': return <MessageSquare style={iconStyle} />;
+            default: return <Clock style={iconStyle} />;
         }
     };
 
     const formatTimeAgo = (dateValue: string | { _seconds: number; _nanoseconds: number }) => {
         let date: Date;
 
-        // Handle Firestore Timestamp objects
         if (typeof dateValue === 'object' && dateValue !== null && '_seconds' in dateValue) {
             date = new Date(dateValue._seconds * 1000);
         } else {
             date = new Date(dateValue as string);
         }
 
-        // Check for invalid date
         if (isNaN(date.getTime())) {
             return 'Just now';
         }
@@ -164,22 +160,22 @@ export default function LeadsPage() {
     const bookedCount = leads.filter(l => l.status === 'BOOKED').length;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold">Leads</h1>
-                    <p className="text-muted-foreground">Manage your lead pipeline</p>
+                    <h1>Leads</h1>
+                    <p style={{ color: 'var(--muted-foreground)', fontSize: '0.8125rem' }} className="mt-1">Manage your lead pipeline</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={fetchLeads}>
-                        <RefreshCcw className="mr-2 h-4 w-4" />
+                    <button className="btn-secondary" onClick={fetchLeads}>
+                        <RefreshCcw className="w-[14px] h-[14px]" style={{ strokeWidth: 1.75 }} />
                         Refresh
-                    </Button>
-                    <Button onClick={() => setShowCreateModal(true)}>
-                        <UserPlus className="mr-2 h-4 w-4" />
+                    </button>
+                    <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+                        <UserPlus className="w-[14px] h-[14px]" style={{ strokeWidth: 2 }} />
                         New Lead
-                    </Button>
+                    </button>
                 </div>
             </div>
 
@@ -191,132 +187,124 @@ export default function LeadsPage() {
             />
 
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-4">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <Clock className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold">{newLeads}</div>
-                                <div className="text-sm text-muted-foreground">New</div>
-                            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="card">
+                    <div className="flex items-center gap-3">
+                        <div className="icon-box icon-box-blue">
+                            <Clock />
                         </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                <User className="h-5 w-5 text-green-600" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold">{claimedByHuman}</div>
-                                <div className="text-sm text-muted-foreground">Human Claims</div>
-                            </div>
+                        <div>
+                            <div className="metric-sm">{newLeads}</div>
+                            <div className="metric-label">New</div>
                         </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                                <Bot className="h-5 w-5 text-purple-600" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold">{claimedByAI}</div>
-                                <div className="text-sm text-muted-foreground">AI Claims</div>
-                            </div>
+                    </div>
+                </div>
+                <div className="card">
+                    <div className="flex items-center gap-3">
+                        <div className="icon-box icon-box-emerald">
+                            <User />
                         </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                                <Calendar className="h-5 w-5 text-emerald-600" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold">{bookedCount}</div>
-                                <div className="text-sm text-muted-foreground">Booked</div>
-                            </div>
+                        <div>
+                            <div className="metric-sm">{claimedByHuman}</div>
+                            <div className="metric-label">Human Claims</div>
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
+                <div className="card">
+                    <div className="flex items-center gap-3">
+                        <div className="icon-box icon-box-purple">
+                            <Bot />
+                        </div>
+                        <div>
+                            <div className="metric-sm">{claimedByAI}</div>
+                            <div className="metric-label">AI Claims</div>
+                        </div>
+                    </div>
+                </div>
+                <div className="card">
+                    <div className="flex items-center gap-3">
+                        <div className="icon-box icon-box-emerald">
+                            <Calendar />
+                        </div>
+                        <div>
+                            <div className="metric-sm">{bookedCount}</div>
+                            <div className="metric-label">Booked</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Filters */}
-            <Card>
-                <CardContent className="pt-6">
-                    <div className="flex items-center gap-4">
-                        <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search leads..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9"
-                            />
-                        </div>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-48">
-                                <Filter className="h-4 w-4 mr-2" />
-                                <SelectValue placeholder="Filter by status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Statuses</SelectItem>
-                                {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <div className="text-sm text-muted-foreground">
-                            {total} total leads
-                        </div>
+            <div className="card-static">
+                <div className="flex items-center gap-4">
+                    <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2" style={{ width: 15, height: 15, color: 'var(--muted-foreground)', strokeWidth: 1.75 }} />
+                        <Input
+                            placeholder="Search leads..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9"
+                            style={{ height: 34, fontSize: '0.8125rem', borderRadius: 8 }}
+                        />
                     </div>
-                </CardContent>
-            </Card>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-48" style={{ height: 34, fontSize: '0.8125rem', borderRadius: 8 }}>
+                            <Filter style={{ width: 14, height: 14, strokeWidth: 1.75, marginRight: 6 }} />
+                            <SelectValue placeholder="Filter by status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Statuses</SelectItem>
+                            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                                <SelectItem key={value} value={value}>{label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)' }}>
+                        {total} total leads
+                    </span>
+                </div>
+            </div>
 
             {/* Leads List */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Lead Pipeline</CardTitle>
-                    <CardDescription>All leads sorted by most recent</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                    ) : filteredLeads.length === 0 ? (
-                        <div className="text-center py-12">
-                            <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-medium mb-2">No leads found</h3>
-                            <p className="text-muted-foreground">
-                                {searchQuery || statusFilter !== 'all'
-                                    ? 'Try adjusting your filters'
-                                    : 'Leads will appear here when forms are submitted'}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {filteredLeads.map((lead) => (
-                                <div
-                                    key={lead.id}
-                                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+            <div className="card-static">
+                <div className="mb-4">
+                    <h3>Lead Pipeline</h3>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)', marginTop: 2 }}>
+                        All leads sorted by most recent
+                    </p>
+                </div>
+
+                {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--muted-foreground)' }} />
+                    </div>
+                ) : filteredLeads.length === 0 ? (
+                    <div className="text-center py-12">
+                        <User className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--muted-foreground)', opacity: 0.5 }} />
+                        <h3 className="mb-1">No leads found</h3>
+                        <p style={{ color: 'var(--muted-foreground)', fontSize: '0.8125rem' }}>
+                            {searchQuery || statusFilter !== 'all'
+                                ? 'Try adjusting your filters'
+                                : 'Leads will appear here when forms are submitted'}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-0.5">
+                        {filteredLeads.map((lead) => {
+                            const badge = STATUS_MAP[lead.status] || { label: lead.status, className: 'status-dead' };
+                            return (
+                                <div key={lead.id} className="list-row">
+                                    <div className="flex items-center gap-3">
+                                        <div className="list-avatar">
                                             {lead.firstName.charAt(0).toUpperCase()}
                                         </div>
                                         <div>
-                                            <div className="font-medium">
+                                            <div style={{ fontWeight: 500, fontSize: '0.8125rem' }}>
                                                 {lead.firstName} {lead.lastName}
                                             </div>
-                                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                            <div className="flex items-center gap-3" style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
                                                 <span className="flex items-center gap-1">
-                                                    <Phone className="h-3 w-3" />
+                                                    <Phone style={{ width: 11, height: 11, strokeWidth: 1.75 }} />
                                                     {lead.phone}
                                                 </span>
                                                 {lead.city && lead.state && (
@@ -326,52 +314,48 @@ export default function LeadsPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-6">
+                                    <div className="flex items-center gap-4">
                                         {/* Claimed By */}
                                         {lead.claimedBy && (
-                                            <div className="flex items-center gap-2 text-sm">
+                                            <div className="flex items-center gap-1.5" style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
                                                 {lead.claimedBy === 'human' ? (
-                                                    <User className="h-4 w-4 text-green-600" />
+                                                    <User style={{ width: 13, height: 13, strokeWidth: 1.75, color: 'var(--foreground)' }} />
                                                 ) : (
-                                                    <Bot className="h-4 w-4 text-purple-600" />
+                                                    <Bot style={{ width: 13, height: 13, strokeWidth: 1.75, color: 'var(--muted-foreground)' }} />
                                                 )}
-                                                <span className="text-muted-foreground">
-                                                    {lead.claimedBy === 'human' ? 'Human' : 'AI'}
-                                                </span>
+                                                {lead.claimedBy === 'human' ? 'Human' : 'AI'}
                                             </div>
                                         )}
 
                                         {/* AI Call Duration */}
                                         {lead.aiCallDuration && (
-                                            <div className="text-sm text-muted-foreground">
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
                                                 {Math.floor(lead.aiCallDuration / 60)}:{String(lead.aiCallDuration % 60).padStart(2, '0')}
-                                            </div>
+                                            </span>
                                         )}
 
                                         {/* Status Badge */}
-                                        <Badge className={`${STATUS_COLORS[lead.status]} flex items-center gap-1`}>
-                                            {getStatusIcon(lead.status)}
-                                            {STATUS_LABELS[lead.status] || lead.status}
-                                        </Badge>
+                                        <span className={`status-badge ${badge.className}`}>
+                                            <span className="status-dot" />
+                                            {badge.label}
+                                        </span>
 
                                         {/* Time */}
-                                        <div className="text-sm text-muted-foreground w-20 text-right">
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', width: 64, textAlign: 'right' as const }}>
                                             {formatTimeAgo(lead.createdAt)}
-                                        </div>
+                                        </span>
 
                                         {/* Actions */}
-                                        <Button size="sm" variant="outline" asChild>
-                                            <a href={`tel:${lead.phone}`}>
-                                                <Phone className="h-4 w-4" />
-                                            </a>
-                                        </Button>
+                                        <a href={`tel:${lead.phone}`} className="btn-icon" style={{ width: 30, height: 30 }}>
+                                            <Phone style={{ width: 14, height: 14, strokeWidth: 1.75 }} />
+                                        </a>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

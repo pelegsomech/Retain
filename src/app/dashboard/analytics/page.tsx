@@ -1,9 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
     Loader2,
     Users,
@@ -37,17 +34,17 @@ interface Analytics {
     dailyLeads: Array<{ date: string; count: number }>;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-    NEW: 'New',
-    SMS_SENT: 'SMS Sent',
-    CLAIMED: 'Claimed',
-    AI_CALLING: 'AI Calling',
-    AI_QUALIFIED: 'AI Qualified',
-    BOOKED: 'Booked',
-    CALLBACK_SCHEDULED: 'Callback',
-    DISQUALIFIED: 'Disqualified',
-    NO_ANSWER: 'No Answer',
-    DEAD: 'Dead',
+const STATUS_MAP: Record<string, { label: string; className: string }> = {
+    NEW: { label: 'New', className: 'status-new' },
+    SMS_SENT: { label: 'SMS Sent', className: 'status-sms' },
+    CLAIMED: { label: 'Claimed', className: 'status-claimed' },
+    AI_CALLING: { label: 'AI Calling', className: 'status-ai' },
+    AI_QUALIFIED: { label: 'AI Qualified', className: 'status-ai' },
+    BOOKED: { label: 'Booked', className: 'status-booked' },
+    CALLBACK_SCHEDULED: { label: 'Callback', className: 'status-callback' },
+    DISQUALIFIED: { label: 'Disqualified', className: 'status-declined' },
+    NO_ANSWER: { label: 'No Answer', className: 'status-dead' },
+    DEAD: { label: 'Dead', className: 'status-dead' },
 };
 
 export default function AnalyticsPage() {
@@ -88,7 +85,7 @@ export default function AnalyticsPage() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--muted-foreground)' }} />
             </div>
         );
     }
@@ -96,238 +93,254 @@ export default function AnalyticsPage() {
     if (!analytics) {
         return (
             <div className="text-center py-12">
-                <p className="text-muted-foreground">Failed to load analytics</p>
-                <Button variant="outline" onClick={fetchAnalytics} className="mt-4">
+                <p style={{ color: 'var(--muted-foreground)', fontSize: '0.8125rem' }}>Failed to load analytics</p>
+                <button className="btn-secondary mt-4" onClick={fetchAnalytics}>
                     Retry
-                </Button>
+                </button>
             </div>
         );
     }
 
     const maxDaily = Math.max(...analytics.dailyLeads.map(d => d.count), 1);
+    const totalClaims = analytics.overview.humanClaims + analytics.overview.aiClaims;
+    const humanPct = totalClaims > 0 ? Math.round((analytics.overview.humanClaims / totalClaims) * 100) : 0;
+    const aiPct = totalClaims > 0 ? 100 - humanPct : 0;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold">Analytics</h1>
-                    <p className="text-muted-foreground">Track your lead performance</p>
+                    <h1>Analytics</h1>
+                    <p style={{ color: 'var(--muted-foreground)', fontSize: '0.8125rem' }} className="mt-1">
+                        Track your lead performance
+                    </p>
                 </div>
-                <Button variant="outline" onClick={fetchAnalytics}>
-                    <RefreshCcw className="mr-2 h-4 w-4" />
+                <button className="btn-secondary" onClick={fetchAnalytics}>
+                    <RefreshCcw className="w-[14px] h-[14px]" style={{ strokeWidth: 1.75 }} />
                     Refresh
-                </Button>
+                </button>
             </div>
 
             {/* Key Metrics */}
-            <div className="grid grid-cols-4 gap-4">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                                <Users className="h-6 w-6 text-blue-600" />
-                            </div>
-                            <div>
-                                <div className="text-3xl font-bold">{analytics.overview.totalLeads}</div>
-                                <div className="text-sm text-muted-foreground">Total Leads</div>
-                            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="card animate-slide-up stagger-1">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <p style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)', fontWeight: 450 }}>Total Leads</p>
+                            <p className="metric-value mt-2">{analytics.overview.totalLeads}</p>
                         </div>
-                        <div className="mt-3 text-sm">
-                            <span className="text-green-600 font-medium">+{analytics.overview.leadsToday}</span>
-                            <span className="text-muted-foreground"> today</span>
+                        <div className="icon-box icon-box-blue">
+                            <Users />
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                    <div className="trend-up mt-3">
+                        <TrendingUp className="w-3 h-3" />
+                        +{analytics.overview.leadsToday} today
+                    </div>
+                </div>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                                <Zap className="h-6 w-6 text-yellow-600" />
-                            </div>
-                            <div>
-                                <div className="text-3xl font-bold">{formatDuration(analytics.overview.avgSpeedToLead)}</div>
-                                <div className="text-sm text-muted-foreground">Avg Speed to Lead</div>
-                            </div>
+                <div className="card animate-slide-up stagger-2">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <p style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)', fontWeight: 450 }}>Speed to Lead</p>
+                            <p className="metric-value mt-2">{formatDuration(analytics.overview.avgSpeedToLead)}</p>
                         </div>
-                        <div className="mt-3 text-sm text-muted-foreground">
-                            Time to human claim
+                        <div className="icon-box icon-box-amber">
+                            <Zap />
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                    <p className="mt-3" style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                        Time to human claim
+                    </p>
+                </div>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                                <Calendar className="h-6 w-6 text-emerald-600" />
-                            </div>
-                            <div>
-                                <div className="text-3xl font-bold">{analytics.overview.bookedLeads}</div>
-                                <div className="text-sm text-muted-foreground">Booked</div>
-                            </div>
+                <div className="card animate-slide-up stagger-3">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <p style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)', fontWeight: 450 }}>Booked</p>
+                            <p className="metric-value mt-2">{analytics.overview.bookedLeads}</p>
                         </div>
-                        <div className="mt-3 text-sm">
-                            <span className="text-emerald-600 font-medium">{analytics.overview.conversionRate}%</span>
-                            <span className="text-muted-foreground"> conversion</span>
+                        <div className="icon-box icon-box-emerald">
+                            <Calendar />
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                    <div className="trend-up mt-3">
+                        <TrendingUp className="w-3 h-3" />
+                        {analytics.overview.conversionRate}% conversion
+                    </div>
+                </div>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                                <Bot className="h-6 w-6 text-purple-600" />
-                            </div>
-                            <div>
-                                <div className="text-3xl font-bold">{analytics.aiStats.totalCalls}</div>
-                                <div className="text-sm text-muted-foreground">AI Calls</div>
-                            </div>
+                <div className="card animate-slide-up stagger-4">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <p style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)', fontWeight: 450 }}>AI Calls</p>
+                            <p className="metric-value mt-2">{analytics.aiStats.totalCalls}</p>
                         </div>
-                        <div className="mt-3 text-sm">
-                            <span className="text-purple-600 font-medium">{formatDuration(analytics.aiStats.avgDuration)}</span>
-                            <span className="text-muted-foreground"> avg duration</span>
+                        <div className="icon-box icon-box-purple">
+                            <Bot />
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                    <p className="mt-3" style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                        {formatDuration(analytics.aiStats.avgDuration)} avg duration
+                    </p>
+                </div>
             </div>
 
-            {/* Human vs AI Claims */}
-            <div className="grid grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Claim Distribution</CardTitle>
-                        <CardDescription>Human vs AI lead handling</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex items-center gap-8">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                        <UserCheck className="h-5 w-5 text-green-600" />
-                                    </div>
-                                    <div>
-                                        <div className="text-2xl font-bold">{analytics.overview.humanClaims}</div>
-                                        <div className="text-sm text-muted-foreground">Human Claims</div>
-                                    </div>
+            {/* Claim Distribution + Top Sources */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="card-static">
+                    <h3 className="mb-1">Claim Distribution</h3>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)', marginBottom: 16 }}>
+                        Human vs AI lead handling
+                    </p>
+
+                    <div className="flex items-center gap-6">
+                        <div className="flex-1 space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="icon-box icon-box-emerald">
+                                    <UserCheck />
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                                        <Bot className="h-5 w-5 text-purple-600" />
-                                    </div>
-                                    <div>
-                                        <div className="text-2xl font-bold">{analytics.overview.aiClaims}</div>
-                                        <div className="text-sm text-muted-foreground">AI Claims</div>
-                                    </div>
+                                <div>
+                                    <div className="metric-sm">{analytics.overview.humanClaims}</div>
+                                    <div className="metric-label">Human Claims</div>
                                 </div>
                             </div>
-
-                            {/* Visual ratio bar */}
-                            <div className="flex-1">
-                                <div className="h-4 bg-gray-100 rounded-full overflow-hidden flex">
-                                    <div
-                                        className="bg-green-500 h-full"
-                                        style={{
-                                            width: `${(analytics.overview.humanClaims / (analytics.overview.humanClaims + analytics.overview.aiClaims + 0.01)) * 100}%`
-                                        }}
-                                    />
-                                    <div
-                                        className="bg-purple-500 h-full"
-                                        style={{
-                                            width: `${(analytics.overview.aiClaims / (analytics.overview.humanClaims + analytics.overview.aiClaims + 0.01)) * 100}%`
-                                        }}
-                                    />
+                            <div className="flex items-center gap-3">
+                                <div className="icon-box icon-box-purple">
+                                    <Bot />
                                 </div>
-                                <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-                                    <span>Human</span>
-                                    <span>AI</span>
+                                <div>
+                                    <div className="metric-sm">{analytics.overview.aiClaims}</div>
+                                    <div className="metric-label">AI Claims</div>
                                 </div>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Top Sources</CardTitle>
-                        <CardDescription>Where your leads come from (last 30 days)</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {analytics.leadsBySource.length === 0 ? (
-                            <div className="text-center py-4 text-muted-foreground">
-                                No source data yet
+                        {/* Visual ratio bar */}
+                        <div className="flex-1">
+                            <div style={{ height: 8, background: 'var(--muted)', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
+                                <div
+                                    style={{
+                                        width: `${humanPct}%`,
+                                        height: '100%',
+                                        background: 'var(--foreground)',
+                                        borderRadius: '4px 0 0 4px',
+                                    }}
+                                />
+                                <div
+                                    style={{
+                                        width: `${aiPct}%`,
+                                        height: '100%',
+                                        background: 'var(--muted-foreground)',
+                                        borderRadius: '0 4px 4px 0',
+                                        opacity: 0.5,
+                                    }}
+                                />
                             </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {analytics.leadsBySource.map((source, i) => (
-                                    <div key={source.source} className="flex items-center gap-3">
-                                        <div className="w-6 text-muted-foreground text-sm">{i + 1}.</div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="font-medium">{source.source}</span>
-                                                <span className="text-sm text-muted-foreground">{source.count}</span>
-                                            </div>
-                                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                <div
-                                                    className="bg-blue-500 h-full rounded-full"
-                                                    style={{
-                                                        width: `${(source.count / (analytics.leadsBySource[0]?.count || 1)) * 100}%`
-                                                    }}
-                                                />
-                                            </div>
+                            <div className="flex justify-between mt-2" style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                                <span>Human {humanPct}%</span>
+                                <span>AI {aiPct}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="card-static">
+                    <h3 className="mb-1">Top Sources</h3>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)', marginBottom: 16 }}>
+                        Where your leads come from
+                    </p>
+
+                    {analytics.leadsBySource.length === 0 ? (
+                        <div className="text-center py-4" style={{ color: 'var(--muted-foreground)', fontSize: '0.8125rem' }}>
+                            No source data yet
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {analytics.leadsBySource.map((source, i) => (
+                                <div key={source.source} className="flex items-center gap-3">
+                                    <span style={{ width: 20, fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{i + 1}.</span>
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span style={{ fontWeight: 500, fontSize: '0.8125rem' }}>{source.source}</span>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{source.count}</span>
+                                        </div>
+                                        <div style={{ height: 4, background: 'var(--muted)', borderRadius: 2, overflow: 'hidden' }}>
+                                            <div
+                                                style={{
+                                                    width: `${(source.count / (analytics.leadsBySource[0]?.count || 1)) * 100}%`,
+                                                    height: '100%',
+                                                    background: 'var(--primary)',
+                                                    borderRadius: 2,
+                                                }}
+                                            />
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Daily Trend */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Daily Leads</CardTitle>
-                    <CardDescription>Last 7 days performance</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-end gap-2 h-48">
-                        {analytics.dailyLeads.map((day) => (
-                            <div key={day.date} className="flex-1 flex flex-col items-center gap-2">
-                                <div className="text-sm font-medium">{day.count}</div>
-                                <div
-                                    className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg transition-all"
-                                    style={{ height: `${(day.count / maxDaily) * 150}px`, minHeight: day.count > 0 ? '10px' : '2px' }}
-                                />
-                                <div className="text-xs text-muted-foreground">{formatDay(day.date)}</div>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="card-static">
+                <h3 className="mb-1">Daily Leads</h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)', marginBottom: 16 }}>
+                    Last 7 days performance
+                </p>
+                <div className="flex items-end gap-2" style={{ height: 180 }}>
+                    {analytics.dailyLeads.map((day) => (
+                        <div key={day.date} className="flex-1 flex flex-col items-center gap-2">
+                            <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--foreground)' }}>{day.count}</span>
+                            <div
+                                style={{
+                                    width: '100%',
+                                    background: 'var(--foreground)',
+                                    borderRadius: '6px 6px 0 0',
+                                    height: `${(day.count / maxDaily) * 140}px`,
+                                    minHeight: day.count > 0 ? 8 : 2,
+                                    transition: 'height 0.4s var(--ease-premium)',
+                                    opacity: day.count > 0 ? 0.75 : 0.15,
+                                }}
+                            />
+                            <span style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>{formatDay(day.date)}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
             {/* Status Breakdown */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Lead Status Breakdown</CardTitle>
-                    <CardDescription>Current distribution of leads by status</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-wrap gap-3">
-                        {analytics.leadsByStatus.map((status) => (
+            <div className="card-static">
+                <h3 className="mb-1">Lead Status Breakdown</h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)', marginBottom: 16 }}>
+                    Current distribution of leads by status
+                </p>
+                <div className="flex flex-wrap gap-2">
+                    {analytics.leadsByStatus.map((status) => {
+                        const badge = STATUS_MAP[status.status] || { label: status.status, className: 'status-dead' };
+                        return (
                             <div
                                 key={status.status}
-                                className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg"
+                                className="flex items-center gap-2"
+                                style={{
+                                    padding: '6px 12px',
+                                    background: 'var(--muted)',
+                                    borderRadius: 8,
+                                    fontSize: '0.8125rem',
+                                }}
                             >
-                                <span className="font-medium">{STATUS_LABELS[status.status] || status.status}</span>
-                                <Badge variant="secondary">{status.count}</Badge>
+                                <span className={`status-badge ${badge.className}`}>
+                                    <span className="status-dot" />
+                                    {badge.label}
+                                </span>
+                                <span style={{ fontWeight: 600, marginLeft: 4 }}>{status.count}</span>
                             </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
     );
 }

@@ -1,9 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
     Dialog,
     DialogContent,
@@ -16,11 +13,9 @@ import {
     Phone,
     Clock,
     Bot,
-    CheckCircle,
     XCircle,
     Calendar,
     RefreshCcw,
-    Play,
     FileText,
     TrendingUp,
     Timer,
@@ -53,28 +48,16 @@ interface CallStats {
     bookingRate: number;
 }
 
-const OUTCOME_COLORS: Record<string, string> = {
-    booked: 'bg-emerald-100 text-emerald-800',
-    appointment_scheduled: 'bg-emerald-100 text-emerald-800',
-    callback: 'bg-orange-100 text-orange-800',
-    reschedule: 'bg-orange-100 text-orange-800',
-    not_interested: 'bg-red-100 text-red-800',
-    declined: 'bg-red-100 text-red-800',
-    voicemail: 'bg-gray-100 text-gray-800',
-    no_answer: 'bg-gray-100 text-gray-800',
-    qualified: 'bg-blue-100 text-blue-800',
-};
-
-const OUTCOME_LABELS: Record<string, string> = {
-    booked: 'Booked',
-    appointment_scheduled: 'Booked',
-    callback: 'Callback',
-    reschedule: 'Reschedule',
-    not_interested: 'Not Interested',
-    declined: 'Declined',
-    voicemail: 'Voicemail',
-    no_answer: 'No Answer',
-    qualified: 'Qualified',
+const OUTCOME_MAP: Record<string, { label: string; className: string }> = {
+    booked: { label: 'Booked', className: 'status-booked' },
+    appointment_scheduled: { label: 'Booked', className: 'status-booked' },
+    callback: { label: 'Callback', className: 'status-callback' },
+    reschedule: { label: 'Reschedule', className: 'status-callback' },
+    not_interested: { label: 'Not Interested', className: 'status-declined' },
+    declined: { label: 'Declined', className: 'status-declined' },
+    voicemail: { label: 'Voicemail', className: 'status-dead' },
+    no_answer: { label: 'No Answer', className: 'status-dead' },
+    qualified: { label: 'Qualified', className: 'status-new' },
 };
 
 export default function CallsPage() {
@@ -121,188 +104,182 @@ export default function CallsPage() {
         });
     };
 
-    const getOutcomeIcon = (outcome: string | null) => {
-        switch (outcome?.toLowerCase()) {
-            case 'booked':
-            case 'appointment_scheduled':
-                return <Calendar className="h-4 w-4" />;
-            case 'callback':
-            case 'reschedule':
-                return <Clock className="h-4 w-4" />;
-            case 'not_interested':
-            case 'declined':
-                return <XCircle className="h-4 w-4" />;
-            default:
-                return <Phone className="h-4 w-4" />;
-        }
-    };
-
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold">AI Calls</h1>
-                    <p className="text-muted-foreground">Monitor AI voice agent performance</p>
+                    <h1>AI Calls</h1>
+                    <p style={{ color: 'var(--muted-foreground)', fontSize: '0.8125rem' }} className="mt-1">
+                        Monitor AI voice agent performance
+                    </p>
                 </div>
-                <Button variant="outline" onClick={fetchCalls}>
-                    <RefreshCcw className="mr-2 h-4 w-4" />
+                <button className="btn-secondary" onClick={fetchCalls}>
+                    <RefreshCcw className="w-[14px] h-[14px]" style={{ strokeWidth: 1.75 }} />
                     Refresh
-                </Button>
+                </button>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-4">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                                <Bot className="h-5 w-5 text-purple-600" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold">{stats?.totalCalls || 0}</div>
-                                <div className="text-sm text-muted-foreground">Total Calls</div>
-                            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="card">
+                    <div className="flex items-center gap-3">
+                        <div className="icon-box icon-box-purple">
+                            <Bot />
                         </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <Timer className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold">{formatDuration(stats?.avgDuration || 0)}</div>
-                                <div className="text-sm text-muted-foreground">Avg Duration</div>
-                            </div>
+                        <div>
+                            <div className="metric-sm">{stats?.totalCalls || 0}</div>
+                            <div className="metric-label">Total Calls</div>
                         </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                                <Calendar className="h-5 w-5 text-emerald-600" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold">{stats?.bookedCount || 0}</div>
-                                <div className="text-sm text-muted-foreground">Booked</div>
-                            </div>
+                    </div>
+                </div>
+                <div className="card">
+                    <div className="flex items-center gap-3">
+                        <div className="icon-box icon-box-blue">
+                            <Timer />
                         </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                <TrendingUp className="h-5 w-5 text-green-600" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold">{stats?.bookingRate || 0}%</div>
-                                <div className="text-sm text-muted-foreground">Booking Rate</div>
-                            </div>
+                        <div>
+                            <div className="metric-sm">{formatDuration(stats?.avgDuration || 0)}</div>
+                            <div className="metric-label">Avg Duration</div>
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
+                <div className="card">
+                    <div className="flex items-center gap-3">
+                        <div className="icon-box icon-box-emerald">
+                            <Calendar />
+                        </div>
+                        <div>
+                            <div className="metric-sm">{stats?.bookedCount || 0}</div>
+                            <div className="metric-label">Booked</div>
+                        </div>
+                    </div>
+                </div>
+                <div className="card">
+                    <div className="flex items-center gap-3">
+                        <div className="icon-box icon-box-emerald">
+                            <TrendingUp />
+                        </div>
+                        <div>
+                            <div className="metric-sm">{stats?.bookingRate || 0}%</div>
+                            <div className="metric-label">Booking Rate</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Calls List */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Call History</CardTitle>
-                    <CardDescription>Recent AI calls with outcomes and transcripts</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                    ) : calls.length === 0 ? (
-                        <div className="text-center py-12">
-                            <Bot className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-medium mb-2">No AI calls yet</h3>
-                            <p className="text-muted-foreground">
-                                AI calls will appear here when leads are escalated
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {calls.map((call) => (
+            <div className="card-static">
+                <div className="mb-4">
+                    <h3>Call History</h3>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)', marginTop: 2 }}>
+                        Recent AI calls with outcomes and transcripts
+                    </p>
+                </div>
+
+                {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--muted-foreground)' }} />
+                    </div>
+                ) : calls.length === 0 ? (
+                    <div className="text-center py-12">
+                        <Bot className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--muted-foreground)', opacity: 0.5 }} />
+                        <h3 className="mb-1">No AI calls yet</h3>
+                        <p style={{ color: 'var(--muted-foreground)', fontSize: '0.8125rem' }}>
+                            AI calls will appear here when leads are escalated
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-0.5">
+                        {calls.map((call) => {
+                            const outcome = call.aiCallOutcome
+                                ? (OUTCOME_MAP[call.aiCallOutcome.toLowerCase()] || { label: call.aiCallOutcome, className: 'status-dead' })
+                                : null;
+
+                            return (
                                 <div
                                     key={call.id}
-                                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                                    className="list-row cursor-pointer"
                                     onClick={() => setSelectedCall(call)}
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white">
-                                            <Bot className="h-5 w-5" />
+                                    <div className="flex items-center gap-3">
+                                        <div className="icon-box icon-box-sm icon-box-purple">
+                                            <Bot />
                                         </div>
                                         <div>
-                                            <div className="font-medium">
+                                            <div style={{ fontWeight: 500, fontSize: '0.8125rem' }}>
                                                 {call.firstName} {call.lastName}
                                             </div>
-                                            <div className="text-sm text-muted-foreground flex items-center gap-2">
-                                                <Phone className="h-3 w-3" />
+                                            <div className="flex items-center gap-1.5" style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                                                <Phone style={{ width: 11, height: 11, strokeWidth: 1.75 }} />
                                                 {call.phone}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-6">
+                                    <div className="flex items-center gap-4">
                                         {/* Duration */}
                                         <div className="text-center">
-                                            <div className="font-semibold">{formatDuration(call.aiCallDuration)}</div>
-                                            <div className="text-xs text-muted-foreground">Duration</div>
+                                            <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+                                                {formatDuration(call.aiCallDuration)}
+                                            </div>
+                                            <div style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>Duration</div>
                                         </div>
 
                                         {/* Outcome */}
-                                        {call.aiCallOutcome && (
-                                            <Badge className={`${OUTCOME_COLORS[call.aiCallOutcome.toLowerCase()] || 'bg-gray-100'} flex items-center gap-1`}>
-                                                {getOutcomeIcon(call.aiCallOutcome)}
-                                                {OUTCOME_LABELS[call.aiCallOutcome.toLowerCase()] || call.aiCallOutcome}
-                                            </Badge>
+                                        {outcome && (
+                                            <span className={`status-badge ${outcome.className}`}>
+                                                <span className="status-dot" />
+                                                {outcome.label}
+                                            </span>
                                         )}
 
                                         {/* Time */}
-                                        <div className="text-sm text-muted-foreground w-32 text-right">
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', width: 100, textAlign: 'right' as const }}>
                                             {call.aiCallStartedAt && formatDateTime(call.aiCallStartedAt)}
-                                        </div>
+                                        </span>
 
-                                        {/* View button with content indicators */}
+                                        {/* Content indicators */}
                                         {(call.aiCallTranscript || call.aiCallRecordingUrl) && (
-                                            <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedCall(call); }}>
-                                                {call.aiCallRecordingUrl && <Volume2 className="h-4 w-4 mr-1" />}
-                                                {call.aiCallTranscript && <FileText className="h-4 w-4 mr-1" />}
+                                            <button
+                                                className="btn-secondary"
+                                                style={{ height: 28, padding: '0 10px', fontSize: '0.75rem' }}
+                                                onClick={(e) => { e.stopPropagation(); setSelectedCall(call); }}
+                                            >
+                                                {call.aiCallRecordingUrl && <Volume2 style={{ width: 13, height: 13, strokeWidth: 1.75 }} />}
+                                                {call.aiCallTranscript && <FileText style={{ width: 13, height: 13, strokeWidth: 1.75 }} />}
                                                 View
-                                            </Button>
+                                            </button>
                                         )}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
 
             {/* Transcript Dialog */}
             <Dialog open={!!selectedCall} onOpenChange={(open) => !open && setSelectedCall(null)}>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" style={{ borderRadius: 16, padding: 24 }}>
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Bot className="h-5 w-5" />
+                        <DialogTitle className="flex items-center gap-2" style={{ fontSize: '1rem', fontWeight: 600 }}>
+                            <div className="icon-box icon-box-sm icon-box-purple">
+                                <Bot />
+                            </div>
                             Call with {selectedCall?.firstName} {selectedCall?.lastName}
                         </DialogTitle>
-                        <DialogDescription>
+                        <DialogDescription className="flex items-center gap-2 mt-1" style={{ fontSize: '0.8125rem' }}>
                             {selectedCall?.aiCallStartedAt && formatDateTime(selectedCall.aiCallStartedAt)}
-                            {' • '}
+                            <span style={{ opacity: 0.3 }}>•</span>
                             {formatDuration(selectedCall?.aiCallDuration || 0)}
                             {selectedCall?.aiCallOutcome && (
                                 <>
-                                    {' • '}
-                                    <Badge className={OUTCOME_COLORS[selectedCall.aiCallOutcome.toLowerCase()] || 'bg-gray-100'}>
-                                        {OUTCOME_LABELS[selectedCall.aiCallOutcome.toLowerCase()] || selectedCall.aiCallOutcome}
-                                    </Badge>
+                                    <span style={{ opacity: 0.3 }}>•</span>
+                                    <span className={`status-badge ${(OUTCOME_MAP[selectedCall.aiCallOutcome.toLowerCase()] || { className: 'status-dead' }).className}`}>
+                                        <span className="status-dot" />
+                                        {(OUTCOME_MAP[selectedCall.aiCallOutcome.toLowerCase()] || { label: selectedCall.aiCallOutcome }).label}
+                                    </span>
                                 </>
                             )}
                         </DialogDescription>
@@ -311,9 +288,9 @@ export default function CallsPage() {
                     <div className="space-y-4 mt-4">
                         {/* Contact Info */}
                         <div>
-                            <h4 className="font-medium mb-2">Contact Info</h4>
-                            <div className="text-sm text-muted-foreground">
-                                <Phone className="inline h-3 w-3 mr-1" />
+                            <h4 style={{ fontWeight: 500, fontSize: '0.8125rem', marginBottom: 6 }}>Contact Info</h4>
+                            <div className="flex items-center gap-1.5" style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)' }}>
+                                <Phone style={{ width: 13, height: 13, strokeWidth: 1.75 }} />
                                 {selectedCall?.phone}
                             </div>
                         </div>
@@ -321,11 +298,11 @@ export default function CallsPage() {
                         {/* Recording Player */}
                         {selectedCall?.aiCallRecordingUrl && (
                             <div>
-                                <h4 className="font-medium mb-2 flex items-center gap-2">
-                                    <Volume2 className="h-4 w-4" />
+                                <h4 className="flex items-center gap-2" style={{ fontWeight: 500, fontSize: '0.8125rem', marginBottom: 6 }}>
+                                    <Volume2 style={{ width: 14, height: 14, strokeWidth: 1.75 }} />
                                     Call Recording
                                 </h4>
-                                <div className="bg-muted rounded-lg p-4">
+                                <div style={{ background: 'var(--muted)', borderRadius: 10, padding: 16 }}>
                                     <audio
                                         controls
                                         className="w-full"
@@ -334,21 +311,17 @@ export default function CallsPage() {
                                         Your browser does not support the audio element.
                                     </audio>
                                     <div className="mt-2 flex justify-end">
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            asChild
+                                        <a
+                                            href={selectedCall.aiCallRecordingUrl}
+                                            download={`call-${selectedCall.id}.wav`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="btn-secondary"
+                                            style={{ height: 28, padding: '0 10px', fontSize: '0.75rem' }}
                                         >
-                                            <a
-                                                href={selectedCall.aiCallRecordingUrl}
-                                                download={`call-${selectedCall.id}.wav`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                <Download className="h-4 w-4 mr-1" />
-                                                Download
-                                            </a>
-                                        </Button>
+                                            <Download style={{ width: 13, height: 13, strokeWidth: 1.75 }} />
+                                            Download
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -357,11 +330,11 @@ export default function CallsPage() {
                         {/* Call Summary */}
                         {selectedCall?.aiCallSummary && (
                             <div>
-                                <h4 className="font-medium mb-2 flex items-center gap-2">
-                                    <FileText className="h-4 w-4" />
+                                <h4 className="flex items-center gap-2" style={{ fontWeight: 500, fontSize: '0.8125rem', marginBottom: 6 }}>
+                                    <FileText style={{ width: 14, height: 14, strokeWidth: 1.75 }} />
                                     Call Summary
                                 </h4>
-                                <div className="bg-muted rounded-lg p-4 text-sm">
+                                <div style={{ background: 'var(--muted)', borderRadius: 10, padding: 16, fontSize: '0.8125rem', lineHeight: 1.6, color: 'var(--foreground)' }}>
                                     {selectedCall.aiCallSummary}
                                 </div>
                             </div>
@@ -370,11 +343,22 @@ export default function CallsPage() {
                         {/* Transcript */}
                         {selectedCall?.aiCallTranscript && (
                             <div>
-                                <h4 className="font-medium mb-2 flex items-center gap-2">
-                                    <Mic className="h-4 w-4" />
+                                <h4 className="flex items-center gap-2" style={{ fontWeight: 500, fontSize: '0.8125rem', marginBottom: 6 }}>
+                                    <Mic style={{ width: 14, height: 14, strokeWidth: 1.75 }} />
                                     Transcript
                                 </h4>
-                                <div className="bg-muted rounded-lg p-4 text-sm whitespace-pre-wrap max-h-96 overflow-y-auto font-mono">
+                                <div style={{
+                                    background: 'var(--muted)',
+                                    borderRadius: 10,
+                                    padding: 16,
+                                    fontSize: '0.8125rem',
+                                    whiteSpace: 'pre-wrap' as const,
+                                    maxHeight: 384,
+                                    overflowY: 'auto' as const,
+                                    fontFamily: 'monospace',
+                                    lineHeight: 1.7,
+                                    color: 'var(--foreground)',
+                                }}>
                                     {selectedCall.aiCallTranscript}
                                 </div>
                             </div>
@@ -382,9 +366,9 @@ export default function CallsPage() {
 
                         {/* No data state */}
                         {!selectedCall?.aiCallTranscript && !selectedCall?.aiCallRecordingUrl && (
-                            <div className="text-center py-8 text-muted-foreground">
-                                <Mic className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                No recording or transcript available for this call
+                            <div className="text-center py-8" style={{ color: 'var(--muted-foreground)' }}>
+                                <Mic className="w-8 h-8 mx-auto mb-2" style={{ opacity: 0.3 }} />
+                                <p style={{ fontSize: '0.8125rem' }}>No recording or transcript available for this call</p>
                             </div>
                         )}
                     </div>
