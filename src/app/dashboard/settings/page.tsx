@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -41,6 +41,10 @@ import {
     INDUSTRY_PRESETS,
 } from '@/lib/atomic-config'
 
+import type { InboundConfig } from '@/lib/firebase-admin'
+import { InboundAssistantSection } from './components/InboundAssistantSection'
+import { createDefaultInboundConfig } from '@/lib/inbound-router'
+
 // Service categories with icons and colors
 const SERVICE_CATEGORIES: {
     id: IndustryNiche
@@ -73,6 +77,8 @@ interface Tenant {
     calendarUrl?: string
     calcomApiKey?: string
     calcomEventTypeId?: number
+    inboundEnabled?: boolean
+    inboundConfig?: InboundConfig
 }
 
 export default function SettingsPage() {
@@ -96,6 +102,10 @@ export default function SettingsPage() {
 
     // Atomic config (auto-generated from service type)
     const [atomicConfig, setAtomicConfig] = useState<AtomicConfig | null>(null)
+
+    // Inbound AI Phone Assistant
+    const [inboundEnabled, setInboundEnabled] = useState(false)
+    const [inboundConfig, setInboundConfig] = useState<InboundConfig | null>(null)
 
     useEffect(() => {
         fetchTenant()
@@ -126,6 +136,15 @@ export default function SettingsPage() {
                     const defaultConfig = createDefaultAtomicConfig(t.id, t.companyName, 'GENERAL')
                     setAtomicConfig(defaultConfig)
                 }
+
+                // Initialize inbound config
+                setInboundEnabled(t.inboundEnabled || false)
+                setInboundConfig(
+                    t.inboundConfig || createDefaultInboundConfig(
+                        t.twilioFromPhone || '',
+                        t.companyName,
+                    )
+                )
             }
         } catch (error) {
             console.error('Failed to fetch tenant:', error)
@@ -203,6 +222,52 @@ export default function SettingsPage() {
             setIsSaving(false)
         }
     }
+
+    // Inbound config handlers
+    const handleInboundEnable = useCallback(async (ownerPhone: string, areaCode?: string) => {
+        const response = await fetch('/api/inbound/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'enable',
+                config: { ownerPhone },
+                areaCode,
+            }),
+        })
+        const data = await response.json()
+        if (data.success) {
+            setInboundEnabled(true)
+            // Refresh tenant to get updated config
+            fetchTenant()
+        }
+        return data
+    }, [])
+
+    const handleInboundDisable = useCallback(async () => {
+        await fetch('/api/inbound/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'disable' }),
+        })
+        setInboundEnabled(false)
+        if (inboundConfig) {
+            setInboundConfig({ ...inboundConfig, enabled: false })
+        }
+    }, [inboundConfig])
+
+    const handleInboundUpdate = useCallback(async (updates: Partial<InboundConfig>) => {
+        const updated = { ...inboundConfig, ...updates } as InboundConfig
+        setInboundConfig(updated)
+
+        await fetch('/api/inbound/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'update',
+                config: updates,
+            }),
+        })
+    }, [inboundConfig])
 
     if (isLoading || !atomicConfig) {
         return (
@@ -367,6 +432,17 @@ export default function SettingsPage() {
                     </p>
                 </CardContent>
             </Card>
+
+            {/* AI Phone Assistant (Inbound) */}
+            {inboundConfig && (
+                <InboundAssistantSection
+                    config={inboundConfig}
+                    isEnabled={inboundEnabled}
+                    onEnable={handleInboundEnable}
+                    onDisable={handleInboundDisable}
+                    onUpdate={handleInboundUpdate}
+                />
+            )}
 
             {/* Advanced Settings Toggle */}
             <div>

@@ -55,6 +55,7 @@ export const collections = {
     teamMembers: db.collection('teamMembers'),
     landerPages: db.collection('landerPages'),
     events: db.collection('events'),
+    inboundCalls: db.collection('inboundCalls'),
 }
 
 // ============================================
@@ -73,6 +74,8 @@ export type LeadStatus =
 export type EventType =
     | 'LEAD_CREATED' | 'SMS_SENT' | 'CLAIM_CLICKED' | 'CLAIM_TIMEOUT'
     | 'AI_CALL_STARTED' | 'AI_CALL_ENDED' | 'BOOKING_CREATED'
+    | 'INBOUND_CALL_RECEIVED' | 'INBOUND_CALL_TRANSFERRED' | 'INBOUND_CALL_COMPLETED'
+    | 'INBOUND_EMERGENCY' | 'INBOUND_MESSAGE_TAKEN'
 
 export interface Tenant {
     id: string
@@ -114,6 +117,10 @@ export interface Tenant {
 
     // Atomic Configuration (new structured config)
     atomicConfig?: import('./atomic-config').AtomicConfig
+
+    // Inbound AI Phone Assistant
+    inboundEnabled?: boolean
+    inboundConfig?: InboundConfig
 
     createdAt: Timestamp
     updatedAt: Timestamp
@@ -208,6 +215,113 @@ export interface AppEvent {
     leadId?: string
     type: EventType
     payload?: Record<string, unknown>
+    createdAt: Timestamp
+}
+
+// ============================================
+// INBOUND AI ASSISTANT TYPES
+// ============================================
+
+export interface BusinessHoursSchedule {
+    [day: string]: {
+        enabled: boolean
+        start: string  // 'HH:MM' e.g. '09:00'
+        end: string    // 'HH:MM' e.g. '17:00'
+    }
+}
+
+export interface ServiceMenuItem {
+    id: string
+    name: string
+    description: string
+    estimatedDuration: string
+    priceRange?: string
+    requiresOnSiteVisit: boolean
+    bookingType: 'appointment' | 'service_call' | 'consultation'
+}
+
+export interface InboundConfig {
+    enabled: boolean
+
+    // The AI receptionist's dedicated phone number (Retell-managed)
+    inboundPhoneNumber: string
+    inboundAgentId: string          // Separate Retell agent ID for inbound
+
+    // Call routing
+    vipNumbers: { phone: string; label: string }[]   // Always transfer to owner
+    blockedNumbers: string[]
+
+    // Business hours (for routing decisions)
+    timezone: string                // 'America/Los_Angeles'
+    businessHours: BusinessHoursSchedule
+
+    // Owner's personal phone for transfers
+    ownerPhone: string
+
+    // Greeting
+    greetingMode: 'business_hours' | 'after_hours' | 'always_same'
+    businessHoursGreeting: string
+    afterHoursGreeting: string
+
+    // AI capabilities
+    capabilities: {
+        canBookAppointments: boolean
+        canAcceptServiceCalls: boolean
+        canProvideQuotes: boolean
+        canTransferToOwner: boolean
+        canTakeMessages: boolean
+        canHandleEmergencies: boolean
+    }
+
+    // Emergency keywords that trigger owner alert
+    emergencyKeywords: string[]
+
+    // Service menu the AI can offer
+    serviceMenu: ServiceMenuItem[]
+}
+
+export type InboundCallOutcome =
+    | 'appointment_booked' | 'service_call_scheduled' | 'message_taken'
+    | 'info_provided' | 'transferred' | 'emergency_escalated' | 'spam_blocked'
+
+export type InboundRouteDecision =
+    | 'ai_handled' | 'transferred_to_owner' | 'vip_transfer' | 'blocked' | 'voicemail'
+
+export interface InboundCall {
+    id: string
+    tenantId: string
+
+    // Call info
+    callerPhone: string
+    callerName?: string
+    twilioCallSid?: string
+    callStartedAt: Timestamp
+    callEndedAt?: Timestamp
+    durationSeconds?: number
+
+    // Routing
+    routeDecision: InboundRouteDecision
+    transferredAt?: Timestamp
+
+    // AI interaction
+    retellCallId?: string
+    transcript?: string
+    recordingUrl?: string
+    callSummary?: string
+
+    // Outcome
+    outcome?: InboundCallOutcome
+
+    // If appointment was booked
+    appointmentTime?: Timestamp
+    appointmentType?: string
+    calcomBookingId?: string
+
+    // Follow-up
+    followUpRequired: boolean
+    followUpNotes?: string
+    ownerNotified: boolean
+
     createdAt: Timestamp
 }
 
