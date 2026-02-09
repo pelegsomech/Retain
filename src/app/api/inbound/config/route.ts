@@ -55,6 +55,14 @@ export async function POST(req: NextRequest) {
 
         switch (action) {
             case 'enable': {
+                // Pre-flight check: is Retell configured?
+                if (!process.env.RETELL_API_KEY) {
+                    return NextResponse.json(
+                        { error: 'Retell API key not configured. Add RETELL_API_KEY to your environment variables.' },
+                        { status: 500 }
+                    )
+                }
+
                 // First-time setup: create agent + purchase number
                 if (tenant.inboundConfig?.inboundAgentId && tenant.inboundConfig?.inboundPhoneNumber) {
                     // Already provisioned, just enable
@@ -79,7 +87,7 @@ export async function POST(req: NextRequest) {
 
                 if (!agent) {
                     return NextResponse.json(
-                        { error: 'Failed to create inbound agent. Check Retell configuration.' },
+                        { error: 'Failed to create Retell agent. Check your RETELL_API_KEY and account status.' },
                         { status: 500 }
                     )
                 }
@@ -90,7 +98,7 @@ export async function POST(req: NextRequest) {
                     // Cleanup: delete the agent we just created
                     await deleteInboundAgent(agent.agent_id)
                     return NextResponse.json(
-                        { error: 'Failed to purchase phone number. Try a different area code.' },
+                        { error: 'Failed to purchase phone number. Try a different area code or check Retell account credits.' },
                         { status: 500 }
                     )
                 }
