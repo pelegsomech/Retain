@@ -246,6 +246,7 @@ export interface InboundConfig {
     // The AI receptionist's dedicated phone number (Retell-managed)
     inboundPhoneNumber: string
     inboundAgentId: string          // Separate Retell agent ID for inbound
+    inboundLlmId?: string           // Retell LLM (Response Engine) ID for inbound
 
     // Call routing
     vipNumbers: { phone: string; label: string }[]   // Always transfer to owner

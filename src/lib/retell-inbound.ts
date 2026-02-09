@@ -9,7 +9,17 @@ import type { Tenant, InboundConfig, ServiceMenuItem } from './firebase-admin'
 import type { AtomicConfig } from './atomic-config'
 
 const RETELL_API_KEY = process.env.RETELL_API_KEY
-const RETELL_API_URL = 'https://api.retellai.com/v2'
+const RETELL_API_BASE = 'https://api.retellai.com'  // Root URL for agent/LLM management
+const RETELL_API_V2 = 'https://api.retellai.com/v2' // /v2 for phone calls
+
+// ============================================
+// RETELL LLM (Response Engine) CREATION
+// ============================================
+
+interface RetellLLMResponse {
+    llm_id: string
+    version: number
+}
 
 // ============================================
 // INBOUND AGENT CREATION
@@ -32,22 +42,61 @@ interface RetellPhoneNumberResponse {
 }
 
 /**
- * Create a new Retell inbound agent for a tenant
- * Returns the agent ID
+ * Step 1: Create a Retell LLM (Response Engine) with prompt + tools
+ * Must be created before the agent.
+ */
+async function createInboundLLM(
+    tenant: Tenant
+): Promise<RetellLLMResponse> {
+    const prompt = buildInboundPrompt(tenant)
+    const tools = buildInboundTools(tenant)
+    const greeting = tenant.inboundConfig?.businessHoursGreeting
+        || `Thank you for calling ${tenant.companyName}! How can I help you today?`
+
+    const response = await fetch(`${RETELL_API_BASE}/create-retell-llm`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${RETELL_API_KEY}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model: 'gpt-4.1-mini',
+            general_prompt: prompt,
+            general_tools: tools,
+            begin_message: greeting,
+        }),
+    })
+
+    if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Retell LLM creation failed: ${response.status} - ${errorText}`)
+    }
+
+    const data = await response.json() as RetellLLMResponse
+    console.log(`[RetellInbound] LLM created: ${data.llm_id} for ${tenant.companyName}`)
+    return data
+}
+
+/**
+ * Step 2: Create a Retell Agent and attach the LLM
+ * Returns the agent ID + LLM ID
  */
 export async function createInboundAgent(
     params: CreateInboundAgentParams
-): Promise<RetellAgentResponse | null> {
+): Promise<(RetellAgentResponse & { llm_id: string }) | null> {
     if (!RETELL_API_KEY) {
         console.warn('[RetellInbound] Not configured, skipping agent creation')
         return null
     }
 
     const { tenant } = params
-    const prompt = buildInboundPrompt(tenant)
 
     try {
-        const response = await fetch(`${RETELL_API_URL}/create-agent`, {
+        // Step 1: Create the LLM (Response Engine) with prompt + tools
+        const llm = await createInboundLLM(tenant)
+
+        // Step 2: Create the Agent and attach the LLM
+        const response = await fetch(`${RETELL_API_BASE}/create-agent`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${RETELL_API_KEY}`,
@@ -57,11 +106,10 @@ export async function createInboundAgent(
                 agent_name: `${tenant.companyName} - Inbound`,
                 response_engine: {
                     type: 'retell-llm',
-                    llm_id: undefined,  // Will be created by Retell
+                    llm_id: llm.llm_id,
                 },
-                voice_id: '11labs-Adrian',  // Natural male voice (configurable later)
+                voice_id: '11labs-Adrian',
                 language: 'en-US',
-                // Inbound-specific settings
                 ambient_sound: 'office',
                 responsiveness: 0.8,
                 interruption_sensitivity: 0.7,
@@ -69,23 +117,20 @@ export async function createInboundAgent(
                 backchannel_frequency: 0.6,
                 reminder_trigger_ms: 10000,
                 reminder_max_count: 2,
-                // General prompt for the LLM
-                general_prompt: prompt,
-                // Begin message (first thing AI says)
-                begin_message: null,  // We'll set dynamically via variables
-                // General tools the agent can use
-                general_tools: buildInboundTools(tenant),
+                webhook_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://retain-backend--retaincrm-ab8ab.us-central1.hosted.app'}/api/inbound/webhook`,
             }),
         })
 
         if (!response.ok) {
             const errorText = await response.text()
-            throw new Error(`Retell API error: ${response.status} - ${errorText}`)
+            // Cleanup LLM if agent creation fails
+            await deleteRetellLLM(llm.llm_id)
+            throw new Error(`Retell Agent creation failed: ${response.status} - ${errorText}`)
         }
 
         const data = await response.json() as RetellAgentResponse
-        console.log(`[RetellInbound] Agent created: ${data.agent_id} for ${tenant.companyName}`)
-        return data
+        console.log(`[RetellInbound] Agent created: ${data.agent_id} (LLM: ${llm.llm_id}) for ${tenant.companyName}`)
+        return { ...data, llm_id: llm.llm_id }
     } catch (error) {
         console.error('[RetellInbound] Failed to create agent:', error)
         throw error
@@ -105,7 +150,7 @@ export async function purchaseInboundNumber(
     }
 
     try {
-        const response = await fetch(`${RETELL_API_URL}/create-phone-number`, {
+        const response = await fetch(`${RETELL_API_BASE}/create-phone-number`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${RETELL_API_KEY}`,
@@ -137,13 +182,41 @@ export async function purchaseInboundNumber(
 export async function updateInboundAgent(
     agentId: string,
     tenant: Tenant,
+    llmId?: string,
 ): Promise<void> {
     if (!RETELL_API_KEY) return
 
-    const prompt = buildInboundPrompt(tenant)
-
     try {
-        const response = await fetch(`${RETELL_API_URL}/update-agent/${agentId}`, {
+        // Update the LLM (prompt + tools) if we have the LLM ID
+        if (llmId) {
+            const prompt = buildInboundPrompt(tenant)
+            const tools = buildInboundTools(tenant)
+            const greeting = tenant.inboundConfig?.businessHoursGreeting
+                || `Thank you for calling ${tenant.companyName}! How can I help you today?`
+
+            const llmResponse = await fetch(`${RETELL_API_BASE}/update-retell-llm/${llmId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${RETELL_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    general_prompt: prompt,
+                    general_tools: tools,
+                    begin_message: greeting,
+                }),
+            })
+
+            if (!llmResponse.ok) {
+                const errorText = await llmResponse.text()
+                console.error(`[RetellInbound] Failed to update LLM: ${llmResponse.status} - ${errorText}`)
+            } else {
+                console.log(`[RetellInbound] LLM updated: ${llmId}`)
+            }
+        }
+
+        // Update the agent name
+        const response = await fetch(`${RETELL_API_BASE}/update-agent/${agentId}`, {
             method: 'PATCH',
             headers: {
                 'Authorization': `Bearer ${RETELL_API_KEY}`,
@@ -151,8 +224,6 @@ export async function updateInboundAgent(
             },
             body: JSON.stringify({
                 agent_name: `${tenant.companyName} - Inbound`,
-                general_prompt: prompt,
-                general_tools: buildInboundTools(tenant),
             }),
         })
 
@@ -169,19 +240,43 @@ export async function updateInboundAgent(
 }
 
 /**
- * Delete an inbound agent and release the phone number
+ * Delete a Retell LLM
  */
-export async function deleteInboundAgent(agentId: string): Promise<void> {
+async function deleteRetellLLM(llmId: string): Promise<void> {
     if (!RETELL_API_KEY) return
 
     try {
-        await fetch(`${RETELL_API_URL}/delete-agent/${agentId}`, {
+        await fetch(`${RETELL_API_BASE}/delete-retell-llm/${llmId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${RETELL_API_KEY}`,
+            },
+        })
+        console.log(`[RetellInbound] LLM deleted: ${llmId}`)
+    } catch (error) {
+        console.error('[RetellInbound] Failed to delete LLM:', error)
+    }
+}
+
+/**
+ * Delete an inbound agent (and its LLM) and release the phone number
+ */
+export async function deleteInboundAgent(agentId: string, llmId?: string): Promise<void> {
+    if (!RETELL_API_KEY) return
+
+    try {
+        await fetch(`${RETELL_API_BASE}/delete-agent/${agentId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${RETELL_API_KEY}`,
             },
         })
         console.log(`[RetellInbound] Agent deleted: ${agentId}`)
+
+        // Also delete the associated LLM
+        if (llmId) {
+            await deleteRetellLLM(llmId)
+        }
     } catch (error) {
         console.error('[RetellInbound] Failed to delete agent:', error)
     }
@@ -191,7 +286,7 @@ export async function releaseInboundNumber(phoneNumber: string): Promise<void> {
     if (!RETELL_API_KEY) return
 
     try {
-        await fetch(`${RETELL_API_URL}/delete-phone-number/${phoneNumber}`, {
+        await fetch(`${RETELL_API_BASE}/delete-phone-number/${phoneNumber}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${RETELL_API_KEY}`,
@@ -293,15 +388,25 @@ IMPORTANT RULES:
 // ============================================
 
 function buildInboundTools(tenant: Tenant): object[] {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.retain.ai'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://retain-backend--retaincrm-ab8ab.us-central1.hosted.app'
     const tools: object[] = []
+
+    // End call tool (built-in)
+    tools.push({
+        type: 'end_call',
+        name: 'end_call',
+        description: 'End the call politely when the conversation is complete and the caller has no more questions.',
+    })
 
     // Check availability
     tools.push({
-        type: 'end_call_tool',  // Will be overridden as custom function
+        type: 'custom',
         name: 'check_availability',
         description: 'Check available appointment slots for a given date. Use when the caller wants to schedule an appointment.',
         url: `${appUrl}/api/retell/check-availability`,
+        speak_during_execution: true,
+        speak_after_execution: true,
+        execution_message_description: 'Let me check our availability for that date...',
         parameters: {
             type: 'object',
             properties: {
@@ -316,10 +421,13 @@ function buildInboundTools(tenant: Tenant): object[] {
 
     // Book appointment
     tools.push({
-        type: 'end_call_tool',
+        type: 'custom',
         name: 'book_appointment',
         description: 'Book an appointment for the caller. Use after confirming time and details.',
         url: `${appUrl}/api/retell/book-appointment`,
+        speak_during_execution: true,
+        speak_after_execution: true,
+        execution_message_description: 'Let me book that appointment for you...',
         parameters: {
             type: 'object',
             properties: {
@@ -347,10 +455,13 @@ function buildInboundTools(tenant: Tenant): object[] {
     // Transfer to owner
     if (tenant.inboundConfig?.capabilities?.canTransferToOwner) {
         tools.push({
-            type: 'end_call_tool',
+            type: 'custom',
             name: 'transfer_to_owner',
             description: 'Transfer the call to the business owner or a team member. Use when the caller explicitly requests to speak with a person, or when you cannot handle their request.',
             url: `${appUrl}/api/inbound/transfer`,
+            speak_during_execution: true,
+            speak_after_execution: true,
+            execution_message_description: 'Let me connect you with someone from the team...',
             parameters: {
                 type: 'object',
                 properties: {
@@ -379,10 +490,13 @@ function buildInboundTools(tenant: Tenant): object[] {
     // Take message
     if (tenant.inboundConfig?.capabilities?.canTakeMessages) {
         tools.push({
-            type: 'end_call_tool',
+            type: 'custom',
             name: 'take_message',
             description: 'Record a message from the caller for the business owner. Use when you cannot handle the request and the caller does not want to wait for a transfer.',
             url: `${appUrl}/api/inbound/message`,
+            speak_during_execution: true,
+            speak_after_execution: true,
+            execution_message_description: 'I will pass along your message right away.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -412,10 +526,13 @@ function buildInboundTools(tenant: Tenant): object[] {
     // Emergency escalation
     if (tenant.inboundConfig?.capabilities?.canHandleEmergencies) {
         tools.push({
-            type: 'end_call_tool',
+            type: 'custom',
             name: 'emergency_escalation',
             description: 'Immediately escalate an emergency to the business owner. Use when the caller reports a flood, gas leak, fire, burst pipe, or any life-threatening situation.',
             url: `${appUrl}/api/inbound/emergency`,
+            speak_during_execution: true,
+            speak_after_execution: true,
+            execution_message_description: 'I am alerting the team about this emergency right now.',
             parameters: {
                 type: 'object',
                 properties: {

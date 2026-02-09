@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
                     })
                 }
 
-                // Create a new inbound agent
+                // Create a new inbound agent (creates LLM + Agent)
                 const agent = await createInboundAgent({
                     tenant,
                     ownerPhone: configUpdates?.ownerPhone || tenant.twilioFromPhone || '',
@@ -95,8 +95,8 @@ export async function POST(req: NextRequest) {
                 // Purchase a phone number for this agent
                 const phone = await purchaseInboundNumber(agent.agent_id, areaCode)
                 if (!phone) {
-                    // Cleanup: delete the agent we just created
-                    await deleteInboundAgent(agent.agent_id)
+                    // Cleanup: delete the agent + LLM we just created
+                    await deleteInboundAgent(agent.agent_id, agent.llm_id)
                     return NextResponse.json(
                         { error: 'Failed to purchase phone number. Try a different area code or check Retell account credits.' },
                         { status: 500 }
@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
                     enabled: true,
                     inboundPhoneNumber: phone.phone_number,
                     inboundAgentId: agent.agent_id,
+                    inboundLlmId: agent.llm_id,
                 }
 
                 await collections.tenants.doc(tenant.id).update({
@@ -173,6 +174,7 @@ export async function POST(req: NextRequest) {
                     await updateInboundAgent(
                         tenant.inboundConfig.inboundAgentId,
                         updatedTenant,
+                        tenant.inboundConfig.inboundLlmId,
                     ).catch(err => console.error('[InboundConfig] Agent update failed:', err))
                 }
 
@@ -183,9 +185,12 @@ export async function POST(req: NextRequest) {
             }
 
             case 'deprovision': {
-                // Full teardown: delete agent + release number
+                // Full teardown: delete agent + LLM + release number
                 if (tenant.inboundConfig?.inboundAgentId) {
-                    await deleteInboundAgent(tenant.inboundConfig.inboundAgentId)
+                    await deleteInboundAgent(
+                        tenant.inboundConfig.inboundAgentId,
+                        tenant.inboundConfig.inboundLlmId,
+                    )
                 }
                 if (tenant.inboundConfig?.inboundPhoneNumber) {
                     await releaseInboundNumber(tenant.inboundConfig.inboundPhoneNumber)
@@ -212,7 +217,7 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         console.error('[InboundConfig] Error:', error)
         return NextResponse.json(
-            { error: 'Failed to update inbound configuration' },
+            { error: `Failed to update inbound configuration: ${error instanceof Error ? error.message : 'Unknown error'}` },
             { status: 500 }
         )
     }
