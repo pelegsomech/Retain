@@ -2,14 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import {
     Loader2,
     Save,
@@ -282,18 +275,18 @@ export default function SettingsPage() {
     const linguistics = atomicConfig.linguistic_map
 
     return (
-        <div className="max-w-3xl mx-auto space-y-8 pb-32">
+        <div className="max-w-3xl mx-auto space-y-6 pb-32">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="settings-header">
                 <div>
-                    <h1 className="text-2xl font-bold">Settings</h1>
-                    <p className="text-muted-foreground text-sm">
-                        Configure your AI agent in seconds
+                    <h1 className="settings-header-title">Settings</h1>
+                    <p className="settings-header-subtitle">
+                        Configure your AI assistant in seconds
                     </p>
                 </div>
                 <Link
                     href="/dashboard/settings/team"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-muted transition-colors text-sm"
+                    className="settings-chip flex items-center gap-2"
                 >
                     <Users className="h-4 w-4" />
                     Team
@@ -302,117 +295,111 @@ export default function SettingsPage() {
             </div>
 
             {/* Company Name */}
-            <Card>
-                <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-lg">
+            <div className="settings-card p-6">
+                <div className="settings-section-header">
+                    <div className="settings-icon-circle">
                         <Building2 className="h-5 w-5" />
-                        Company Name
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Input
+                    </div>
+                    <div>
+                        <h3 className="settings-title">Company Name</h3>
+                        <p className="settings-desc">How the AI introduces your company on calls</p>
+                    </div>
+                </div>
+                <div className="mt-4">
+                    <input
                         value={companyName}
                         onChange={(e) => handleCompanyNameChange(e.target.value)}
                         placeholder="Terra Decks"
-                        className="text-lg"
+                        className="settings-input w-full text-lg"
                     />
-                    <p className="text-xs text-muted-foreground mt-2">
-                        How the AI introduces your company on calls
-                    </p>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Service Type */}
-            <Card>
-                <CardHeader className="pb-4">
-                    <CardTitle className="text-lg">What service do you provide?</CardTitle>
-                    <CardDescription>
-                        This automatically configures how the AI talks about your work
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                        {SERVICE_CATEGORIES.map(category => {
-                            const Icon = category.icon
-                            const isSelected = serviceType === category.id
-                            return (
-                                <button
-                                    key={category.id}
-                                    onClick={() => handleServiceTypeChange(category.id)}
-                                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${isSelected
-                                        ? 'border-black bg-black/5 shadow-sm'
-                                        : 'border-transparent bg-muted/50 hover:bg-muted'
-                                        }`}
-                                >
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${category.color}`}>
-                                        <Icon className="h-5 w-5" />
-                                    </div>
-                                    <span className="text-sm font-medium">{category.label}</span>
-                                </button>
-                            )
-                        })}
+            <div className="settings-card p-6">
+                <div className="settings-section-header">
+                    <div className="settings-icon-circle">
+                        <Settings2 className="h-5 w-5" />
                     </div>
-                </CardContent>
-            </Card>
+                    <div>
+                        <h3 className="settings-title">What service do you provide?</h3>
+                        <p className="settings-desc">This automatically configures how the AI talks about your work</p>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
+                    {SERVICE_CATEGORIES.map(category => {
+                        const Icon = category.icon
+                        const isSelected = serviceType === category.id
+                        return (
+                            <button
+                                key={category.id}
+                                onClick={() => handleServiceTypeChange(category.id)}
+                                className={`settings-card-chip flex flex-col items-center gap-2 ${isSelected ? 'active' : ''}`}
+                            >
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isSelected ? 'bg-[#18181B] text-white' : 'bg-[#F7F6F3] text-[#C4A265]'}`}>
+                                    <Icon className="h-5 w-5" />
+                                </div>
+                                <span className="text-sm font-medium">{category.label}</span>
+                            </button>
+                        )
+                    })}
+                </div>
+            </div>
 
             {/* AI Preview */}
-            <Card className="bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
-                <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                        <Sparkles className="h-5 w-5 text-amber-500" />
-                        AI Preview
-                    </CardTitle>
-                    <CardDescription>
-                        How your AI agent will talk to leads
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="bg-white rounded-lg p-4 border shadow-sm space-y-3">
-                        <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center flex-shrink-0">
-                                <Phone className="h-4 w-4 text-white" />
-                            </div>
-                            <div className="space-y-2">
-                                <p className="text-sm">
-                                    "Hi, is this <span className="font-semibold text-blue-600">[Name]</span>?
-                                    Great! This is Alex with <span className="font-semibold text-blue-600">{companyName || '[Company]'}</span>.
-                                    I saw you reached out about a <span className="font-semibold text-blue-600">{linguistics.noun_singular}</span> —
-                                    just following up to see how I can help."
-                                </p>
-                                <p className="text-sm">
-                                    "The easiest next step is a quick <span className="font-semibold text-blue-600">{linguistics.visit_title}</span> —
-                                    our <span className="font-semibold text-blue-600">{linguistics.specialist_title}</span> comes out,
-                                    checks things out, and gives you real options with pricing."
-                                </p>
-                            </div>
+            <div className="settings-card p-6">
+                <div className="settings-section-header">
+                    <div className="settings-icon-circle accent">
+                        <Sparkles className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="settings-title">AI Preview</h3>
+                        <p className="settings-desc">How your AI agent will talk to leads</p>
+                    </div>
+                </div>
+                <div className="settings-preview mt-4">
+                    <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[#18181B] flex items-center justify-center flex-shrink-0">
+                            <Phone className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="space-y-2">
+                            <p className="text-sm">
+                                &quot;Hi, is this <span className="highlight">[Name]</span>?
+                                Great! This is Alex with <span className="highlight">{companyName || '[Company]'}</span>.
+                                I saw you reached out about a <span className="highlight">{linguistics.noun_singular}</span> —
+                                just following up to see how I can help.&quot;
+                            </p>
+                            <p className="text-sm">
+                                &quot;The easiest next step is a quick <span className="highlight">{linguistics.visit_title}</span> —
+                                our <span className="highlight">{linguistics.specialist_title}</span> comes out,
+                                checks things out, and gives you real options with pricing.&quot;
+                            </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-3">
-                        <Badge variant="outline" className={currentCategory.color}>
-                            {currentCategory.label}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                            Auto-configured terminology
-                        </span>
-                    </div>
-                </CardContent>
-            </Card>
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                    <span className="settings-badge">{currentCategory.label}</span>
+                    <span className="text-xs text-[#8C8780]">
+                        Auto-configured terminology
+                    </span>
+                </div>
+            </div>
 
             {/* Call Timer */}
-            <Card>
-                <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-lg">
+            <div className="settings-card p-6">
+                <div className="settings-section-header">
+                    <div className="settings-icon-circle">
                         <Clock className="h-5 w-5" />
-                        AI Call Timer
-                    </CardTitle>
-                    <CardDescription>
-                        How long to wait before AI calls a new lead
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                    </div>
+                    <div>
+                        <h3 className="settings-title">AI Call Timer</h3>
+                        <p className="settings-desc">How long to wait before AI calls a new lead</p>
+                    </div>
+                </div>
+                <div className="mt-4 space-y-4">
                     <div className="flex items-center justify-between">
-                        <span className="text-3xl font-bold">{callTimerSeconds}s</span>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-3xl font-bold text-[#18181B]">{callTimerSeconds}s</span>
+                        <span className="settings-badge">
                             {callTimerSeconds < 60 ? 'Quick response' : callTimerSeconds < 120 ? 'Standard' : 'Delayed'}
                         </span>
                     </div>
@@ -424,15 +411,15 @@ export default function SettingsPage() {
                         step={15}
                         className="w-full"
                     />
-                    <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="flex justify-between text-xs text-[#8C8780]">
                         <span>30s (instant)</span>
                         <span>300s (5 min)</span>
                     </div>
-                    <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                    <div className="settings-tip">
                         💡 When a lead comes in, your team has this long to claim it before the AI calls automatically.
-                    </p>
-                </CardContent>
-            </Card>
+                    </div>
+                </div>
+            </div>
 
             {/* AI Phone Assistant (Inbound) */}
             {inboundConfig && (
@@ -449,7 +436,7 @@ export default function SettingsPage() {
             <div>
                 <button
                     onClick={() => setShowAdvanced(!showAdvanced)}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="settings-chip flex items-center gap-2"
                 >
                     <Settings2 className="h-4 w-4" />
                     Advanced Settings
@@ -457,100 +444,99 @@ export default function SettingsPage() {
                 </button>
 
                 {showAdvanced && (
-                    <Card className="mt-4">
-                        <CardContent className="pt-6 space-y-6">
-                            {/* Twilio */}
-                            <div className="space-y-2">
-                                <Label>Twilio Phone Number</Label>
-                                <Input
-                                    value={twilioPhone}
-                                    onChange={(e) => setTwilioPhone(e.target.value)}
-                                    placeholder="+1234567890"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    The phone number AI calls from
-                                </p>
+                    <div className="settings-card p-6 mt-4 space-y-6">
+                        {/* Twilio */}
+                        <div className="space-y-2">
+                            <label className="settings-label">Twilio Phone Number</label>
+                            <input
+                                value={twilioPhone}
+                                onChange={(e) => setTwilioPhone(e.target.value)}
+                                placeholder="+1234567890"
+                                className="settings-input w-full"
+                            />
+                            <p className="settings-hint">
+                                The phone number AI calls from
+                            </p>
+                        </div>
+
+                        <hr className="settings-divider" />
+
+                        {/* Retell */}
+                        <div className="space-y-2">
+                            <label className="settings-label">Retell Agent ID</label>
+                            <input
+                                value={retellAgentId}
+                                onChange={(e) => setRetellAgentId(e.target.value)}
+                                placeholder="agent_xxxxx"
+                                className="settings-input w-full"
+                            />
+                        </div>
+
+                        <hr className="settings-divider" />
+
+                        {/* Cal.com Integration */}
+                        <div className="space-y-2">
+                            <label className="settings-label">Cal.com API Key</label>
+                            <input
+                                type="password"
+                                value={calcomApiKey}
+                                onChange={(e) => setCalcomApiKey(e.target.value)}
+                                placeholder="cal_live_xxxxx"
+                                className="settings-input w-full"
+                            />
+                            <p className="settings-hint">
+                                Get from Cal.com → Settings → Developer
+                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="settings-label">Cal.com Event Type ID</label>
+                            <input
+                                type="number"
+                                value={calcomEventTypeId}
+                                onChange={(e) => setCalcomEventTypeId(e.target.value)}
+                                placeholder="1234567"
+                                className="settings-input w-full"
+                            />
+                            <p className="settings-hint">
+                                From cal.com/event-types/[ID]
+                            </p>
+                        </div>
+
+                        {calcomApiKey && calcomEventTypeId && (
+                            <div className="settings-success flex items-center gap-2">
+                                <CheckCircle className="h-4 w-4" />
+                                Calendar connected — AI can book appointments
                             </div>
-
-                            <Separator />
-
-                            {/* Retell */}
-                            <div className="space-y-2">
-                                <Label>Retell Agent ID</Label>
-                                <Input
-                                    value={retellAgentId}
-                                    onChange={(e) => setRetellAgentId(e.target.value)}
-                                    placeholder="agent_xxxxx"
-                                />
-                            </div>
-
-                            <Separator />
-
-                            {/* Cal.com Integration */}
-                            <div className="space-y-2">
-                                <Label>Cal.com API Key</Label>
-                                <Input
-                                    type="password"
-                                    value={calcomApiKey}
-                                    onChange={(e) => setCalcomApiKey(e.target.value)}
-                                    placeholder="cal_live_xxxxx"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    Get from Cal.com → Settings → Developer
-                                </p>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Cal.com Event Type ID</Label>
-                                <Input
-                                    type="number"
-                                    value={calcomEventTypeId}
-                                    onChange={(e) => setCalcomEventTypeId(e.target.value)}
-                                    placeholder="1234567"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    From cal.com/event-types/[ID]
-                                </p>
-                            </div>
-
-                            {calcomApiKey && calcomEventTypeId && (
-                                <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 rounded-lg p-3">
-                                    <CheckCircle className="h-4 w-4" />
-                                    Calendar connected — AI can book appointments
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                        )}
+                    </div>
                 )}
             </div>
 
             {/* Floating Save Button */}
-            <div className="fixed bottom-6 right-6 flex items-center gap-3 bg-white border shadow-lg rounded-full px-6 py-3">
+            <button
+                className="settings-save-btn"
+                onClick={handleSave}
+                disabled={isSaving}
+            >
                 {saveSuccess && (
-                    <div className="flex items-center gap-2 text-green-600">
+                    <span className="save-success">
                         <CheckCircle className="h-4 w-4" />
                         Saved
-                    </div>
+                    </span>
                 )}
-                <Button
-                    size="lg"
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="rounded-full"
-                >
-                    {isSaving ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Saving...
-                        </>
-                    ) : (
-                        <>
-                            <Save className="mr-2 h-4 w-4" />
-                            Save Changes
-                        </>
-                    )}
-                </Button>
-            </div>
+                {isSaving ? (
+                    <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                    </>
+                ) : (
+                    <>
+                        <Save className="h-4 w-4" />
+                        Save Changes
+                    </>
+                )}
+            </button>
         </div>
     )
 }

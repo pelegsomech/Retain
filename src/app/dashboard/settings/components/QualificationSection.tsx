@@ -1,7 +1,5 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { ClipboardCheck } from "lucide-react"
 import { type AtomicConfig } from '@/lib/atomic-config'
@@ -68,27 +66,30 @@ export function QualificationSection({ config, onChange }: Props) {
     const enabledCount = Object.values(qc).filter(Boolean).length
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+        <div className="settings-card p-6">
+            <div className="settings-section-header">
+                <div className="settings-icon-circle">
                     <ClipboardCheck className="h-5 w-5" />
-                    Lead Qualification
-                    <span className="ml-auto text-sm font-normal text-muted-foreground">
-                        {enabledCount} of {QUALIFICATION_ITEMS.length} active
-                    </span>
-                </CardTitle>
-                <CardDescription>
-                    Choose what the AI verifies during qualification calls
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+                </div>
+                <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                        <h3 className="settings-title">Lead Qualification</h3>
+                        <span className="settings-badge">
+                            {enabledCount} of {QUALIFICATION_ITEMS.length} active
+                        </span>
+                    </div>
+                    <p className="settings-desc">Choose what the AI verifies during qualification calls</p>
+                </div>
+            </div>
+
+            <div className="mt-5">
                 {QUALIFICATION_ITEMS.map(item => (
-                    <div key={item.key} className="flex items-center justify-between py-2 border-b last:border-0">
+                    <div key={item.key} className="settings-row">
                         <div>
-                            <Label htmlFor={item.key} className="cursor-pointer">
+                            <label className="settings-label cursor-pointer" htmlFor={item.key}>
                                 {item.label}
-                            </Label>
-                            <p className="text-xs text-muted-foreground">{item.desc}</p>
+                            </label>
+                            <p className="settings-hint">{item.desc}</p>
                         </div>
                         <Switch
                             id={item.key}
@@ -97,7 +98,7 @@ export function QualificationSection({ config, onChange }: Props) {
                         />
                     </div>
                 ))}
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     )
 }
