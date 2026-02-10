@@ -7,6 +7,7 @@ import type { NextRequest } from "next/server";
 const isExternalRoute = createRouteMatcher([
     '/api/webhooks/(.*)', // External webhooks
     '/api/cron/(.*)',     // Cron jobs
+    '/api/admin/(.*)',    // Admin one-shot scripts (TEMPORARY)
 ]);
 
 // Public routes that don't require authentication but still go through Clerk
