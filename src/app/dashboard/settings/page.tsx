@@ -138,7 +138,8 @@ export default function SettingsPage() {
                 }
 
                 // Initialize inbound config
-                setInboundEnabled(t.inboundEnabled || false)
+                const hasInboundNumber = !!t.inboundConfig?.inboundPhoneNumber
+                setInboundEnabled(t.inboundEnabled || hasInboundNumber || false)
                 setInboundConfig(
                     t.inboundConfig || createDefaultInboundConfig(
                         t.twilioFromPhone || '',
