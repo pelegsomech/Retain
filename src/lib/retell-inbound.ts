@@ -110,7 +110,7 @@ export async function createInboundAgent(
                 },
                 voice_id: '11labs-Adrian',
                 language: 'en-US',
-                ambient_sound: '',
+                // ambient_sound omitted — defaults to none
                 responsiveness: 0.8,
                 interruption_sensitivity: 0.7,
                 enable_backchannel: true,
