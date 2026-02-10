@@ -111,18 +111,18 @@ export default function OnboardingPage() {
     // Provisioned data
     const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
 
-    // Auto-fill from user's Google profile
+    // Guard: if user already has an org, they've already onboarded → redirect to dashboard
     useEffect(() => {
-        if (user) {
-            // Try to auto-fill company name from user's metadata
-            const name = user.firstName
-                ? `${user.firstName}'s Business`
-                : ''
-            if (!companyName && name) {
-                // Don't auto-fill — let them type it fresh
+        if (userLoaded && user) {
+            // Check if user already belongs to an organization
+            const memberships = user.organizationMemberships
+            if (memberships && memberships.length > 0) {
+                // Already onboarded — go to dashboard
+                router.replace('/dashboard')
+                return
             }
         }
-    }, [user, companyName])
+    }, [user, userLoaded, router])
 
     // ============================================
     // NAVIGATION
