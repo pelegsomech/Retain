@@ -1126,3 +1126,345 @@
     padding: 16px;
   }
 }
+
+/* ========================================
+   Onboarding Flow — Lemonade-inspired
+   ======================================== */
+
+/* Full-screen onboarding background */
+.onboarding-bg {
+  min-height: 100vh;
+  background: var(--background);
+  position: relative;
+  overflow: hidden;
+}
+
+.onboarding-bg::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  right: -30%;
+  width: 80%;
+  height: 80%;
+  background: radial-gradient(ellipse at center,
+      rgba(24, 24, 27, 0.02) 0%,
+      transparent 70%);
+  pointer-events: none;
+}
+
+.onboarding-bg::after {
+  content: '';
+  position: fixed;
+  bottom: -40%;
+  left: -20%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(ellipse at center,
+      rgba(99, 102, 241, 0.03) 0%,
+      transparent 70%);
+  pointer-events: none;
+}
+
+/* Elevated onboarding card */
+.onboarding-card {
+  background: var(--card);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 20px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 24px 60px rgba(0, 0, 0, 0.04);
+  padding: 40px;
+  max-width: 520px;
+  width: 100%;
+  position: relative;
+}
+
+@media (max-width: 640px) {
+  .onboarding-card {
+    padding: 28px 20px;
+    border-radius: 16px;
+    margin: 0 16px;
+  }
+}
+
+/* Entry animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s var(--ease-premium) both;
+}
+
+.fade-in {
+  animation: fadeIn 0.4s var(--ease-premium) both;
+}
+
+.scale-in {
+  animation: scaleIn 0.4s var(--ease-bounce) both;
+}
+
+/* Staggered children */
+.stagger-children>* {
+  animation: fadeInUp 0.4s var(--ease-premium) both;
+}
+
+.stagger-children>*:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.stagger-children>*:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.stagger-children>*:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.stagger-children>*:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+.stagger-children>*:nth-child(5) {
+  animation-delay: 0.25s;
+}
+
+.stagger-children>*:nth-child(6) {
+  animation-delay: 0.3s;
+}
+
+.stagger-children>*:nth-child(7) {
+  animation-delay: 0.35s;
+}
+
+.stagger-children>*:nth-child(8) {
+  animation-delay: 0.4s;
+}
+
+/* Industry selector chip */
+.industry-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-premium);
+  user-select: none;
+}
+
+.industry-chip:hover {
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.industry-chip.selected {
+  border-color: var(--foreground);
+  background: var(--muted);
+  box-shadow: var(--shadow-md);
+}
+
+.industry-chip .chip-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--muted);
+  transition: all 0.2s var(--ease-premium);
+}
+
+.industry-chip.selected .chip-icon {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.industry-chip .chip-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+.industry-chip.selected .chip-label {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* Slim progress bar */
+.onboarding-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.06);
+  z-index: 50;
+}
+
+.onboarding-progress-fill {
+  height: 100%;
+  background: var(--foreground);
+  transition: width 0.6s var(--ease-premium);
+  border-radius: 0 2px 2px 0;
+}
+
+/* Auth pages — premium treatment */
+.auth-bg {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background);
+  position: relative;
+}
+
+.auth-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg,
+      rgba(24, 24, 27, 0.015) 0%,
+      transparent 100%);
+  pointer-events: none;
+}
+
+/* Success confetti burst */
+@keyframes confettiFall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Pulse ring animation for success states */
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.3;
+  }
+
+  100% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+}
+
+.pulse-ring {
+  animation: pulseRing 2s ease-in-out infinite;
+}
+
+/* Phone number display */
+.phone-display {
+  font-family: 'Inter', monospace;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Quick start card */
+.quickstart-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: all 0.2s var(--ease-premium);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.quickstart-card:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.quickstart-card .qs-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+
+.quickstart-card .qs-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 2px;
+}
+
+.quickstart-card .qs-desc {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}

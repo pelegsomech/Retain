@@ -2,17 +2,52 @@ import { SignUp } from "@clerk/nextjs";
 
 export default function SignUpPage() {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-            <SignUp
-                appearance={{
-                    elements: {
-                        rootBox: "mx-auto",
-                        card: "shadow-xl",
-                    },
-                }}
-                afterSignUpUrl="/onboarding"
-                signInUrl="/sign-in"
-            />
+        <div className="auth-bg">
+            <div className="flex flex-col items-center">
+                {/* Brand */}
+                <div className="mb-8 text-center fade-in-up">
+                    <h1
+                        className="text-2xl font-semibold"
+                        style={{ letterSpacing: '-0.03em', color: 'var(--foreground)' }}
+                    >
+                        RETAIN
+                    </h1>
+                    <p
+                        className="mt-1"
+                        style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)' }}
+                    >
+                        AI-powered lead management
+                    </p>
+                </div>
+
+                <div className="fade-in-up" style={{ animationDelay: '0.1s' }}>
+                    <SignUp
+                        appearance={{
+                            elements: {
+                                rootBox: "mx-auto",
+                                card: "shadow-lg border border-border",
+                                headerTitle: "text-foreground",
+                                headerSubtitle: "text-muted-foreground",
+                                socialButtonsBlockButton:
+                                    "border-border hover:bg-muted transition-colors",
+                                formButtonPrimary:
+                                    "bg-foreground hover:bg-foreground/90 text-background",
+                                footerActionLink: "text-foreground hover:text-foreground/80",
+                            },
+                            variables: {
+                                borderRadius: '12px',
+                                colorPrimary: '#18181B',
+                                colorBackground: '#FFFFFF',
+                                colorText: '#1A1A1A',
+                                colorTextSecondary: '#78716C',
+                                fontFamily: 'Inter, sans-serif',
+                            },
+                        }}
+                        afterSignUpUrl="/onboarding"
+                        signInUrl="/sign-in"
+                    />
+                </div>
+            </div>
         </div>
     );
 }

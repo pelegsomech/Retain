@@ -14,6 +14,7 @@ const isPublicRoute = createRouteMatcher([
     '/',
     '/sign-in(.*)',
     '/sign-up(.*)',
+    '/onboarding(.*)',   // Onboarding flow (standalone)
     '/l/(.*)',           // Public landing pages
     '/c/(.*)',           // Claim links
 ]);
