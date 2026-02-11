@@ -147,7 +147,7 @@ export default function DashboardLayout({
 
                 <main className="flex-1 flex flex-col min-h-screen min-w-0">
                     <DashboardHeader />
-                    <div className="flex-1 p-4 md:p-5 bg-background overflow-x-hidden">
+                    <div className="flex-1 p-5 md:p-6 bg-background overflow-x-hidden">
                         <div className="animate-fade-in max-w-[1400px] mx-auto">
                             {children}
                         </div>
